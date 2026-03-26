@@ -13,8 +13,6 @@ It uses a dedicated Playwright browser profile, keeps your saved login session i
 - Stops retrying after `SUCCESS` or `ALREADY_DONE`
 - Windows desktop notification when the saved session appears to be expired
 - Batch scripts for setup, session capture, and manual runs
-- PowerShell helper to register a delayed logon task
-- Public-safe defaults through `.gitignore`
 
 ## Requirements
 
