@@ -23,14 +23,13 @@ New-Item -ItemType Directory -Path (Join-Path $packageDir "efcheck") | Out-Null
 $files = @(
     "LICENSE",
     "README.md",
+    "README.zh-TW.md",
     "requirements.txt",
     "sign_in.py",
     "capture_session.py",
     "run_signin.bat",
     "capture_session.bat",
     "setup_windows.bat",
-    "prepare_public_repo.bat",
-    "prepare_public_repo.ps1",
     "register_logon_task.ps1",
     "config\settings.example.json"
 )
