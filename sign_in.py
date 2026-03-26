@@ -8,7 +8,11 @@ import sys
 
 from efcheck.attendance_state import derive_attendance_state
 from efcheck.attendance_response import is_attendance_response
-from efcheck.browser_helpers import day_label_candidates
+from efcheck.browser_helpers import (
+    ACTIONABLE_DESCENDANT_SELECTOR,
+    day_card_selector_candidates,
+    day_label_candidates,
+)
 from efcheck.daily_gate import RunGateState, load_state, mark_attempt, should_run_today
 from efcheck.notifications import notify_status
 from efcheck.result_helpers import final_signin_status
@@ -274,6 +278,17 @@ def click_day_tile(page, day_number: int | None) -> None:
     if day_number is None:
         raise ValueError("No available day was detected to click.")
     labels = day_label_candidates(day_number)
+
+    for selector in day_card_selector_candidates(day_number):
+        container = page.locator(selector).first
+        candidates = [
+            container.locator(ACTIONABLE_DESCENDANT_SELECTOR).first,
+            container,
+        ]
+        for locator in candidates:
+            if try_click_locator(locator):
+                return
+
     for text in labels:
         candidates = [
             page.get_by_text(text, exact=True).first,
@@ -281,13 +296,18 @@ def click_day_tile(page, day_number: int | None) -> None:
             page.locator(f"div:has-text('{text}')").first,
         ]
         for locator in candidates:
-            try:
-                locator.scroll_into_view_if_needed(timeout=2000)
-                locator.click(timeout=2000, force=True)
+            if try_click_locator(locator):
                 return
-            except Exception:
-                continue
     raise ValueError(f"Could not click the tile for day {day_number}. Tried labels: {labels}")
+
+
+def try_click_locator(locator) -> bool:
+    try:
+        locator.scroll_into_view_if_needed(timeout=2000)
+        locator.click(timeout=2000, force=True)
+        return True
+    except Exception:
+        return False
 
 
 def page_looks_logged_out(page) -> bool:
