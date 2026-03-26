@@ -1,6 +1,7 @@
 param(
     [string]$TaskName = "EFCheck Endfield Sign-In",
-    [int]$DelaySeconds = 90
+    [int]$DelaySeconds = 90,
+    [switch]$NoPause
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,6 +25,9 @@ if (-not (Test-IsAdministrator)) {
         "-DelaySeconds"
         $DelaySeconds
     )
+    if ($NoPause) {
+        $elevatedArguments += "-NoPause"
+    }
 
     try {
         Start-Process -FilePath "powershell.exe" -ArgumentList $elevatedArguments -Verb RunAs | Out-Null
@@ -59,4 +63,6 @@ Register-ScheduledTask `
     -Force
 
 Write-Host "Registered task: $TaskName"
-PAUSE
+if (-not $NoPause) {
+    PAUSE
+}

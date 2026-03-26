@@ -6,11 +6,11 @@ if exist ".venv\Scripts\python.exe" (
   ".venv\Scripts\python.exe" sign_in.py %*
 ) else (
   where py >nul 2>nul
-  if %errorlevel%==0 (
-    py -3 sign_in.py %*
-  ) else (
+  if errorlevel 1 (
     python sign_in.py %*
+  ) else (
+    py -3 sign_in.py %*
   )
 )
-
+pause
 endlocal

@@ -4,8 +4,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$releaseRoot = Join-Path $scriptRoot $OutputDir
+$projectRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+$releaseRoot = Join-Path $projectRoot $OutputDir
 $packageDir = Join-Path $releaseRoot "EFCheck-Windows"
 $zipPath = Join-Path $releaseRoot "EFCheck-Windows.zip"
 
@@ -27,18 +27,20 @@ $files = @(
     "requirements.txt",
     "sign_in.py",
     "capture_session.py",
+    "install_efcheck.bat",
     "run_signin.bat",
     "capture_session.bat",
     "setup_windows.bat",
+    "register_logon_task.bat",
     "register_logon_task.ps1",
     "config\settings.example.json"
 )
 
 foreach ($file in $files) {
-    Copy-Item (Join-Path $scriptRoot $file) (Join-Path $packageDir $file) -Force
+    Copy-Item (Join-Path $projectRoot $file) (Join-Path $packageDir $file) -Force
 }
 
-Copy-Item (Join-Path $scriptRoot "efcheck\*.py") (Join-Path $packageDir "efcheck") -Force
+Copy-Item (Join-Path $projectRoot "efcheck\*.py") (Join-Path $packageDir "efcheck") -Force
 
 Compress-Archive -Path (Join-Path $packageDir "*") -DestinationPath $zipPath
 Write-Host "Created package: $zipPath"

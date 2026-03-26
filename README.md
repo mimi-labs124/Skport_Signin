@@ -24,13 +24,15 @@ It uses a dedicated Playwright browser profile, keeps your saved login session i
 
 ## Quick start
 
-1. Install dependencies and the browser runtime:
+1. Run the guided setup:
 
 ```bat
-setup_windows.bat
+install_efcheck.bat
 ```
 
-If you update from an older install, run `setup_windows.bat` again so `tzdata` is installed too.
+This guided flow installs dependencies, offers to capture your session, and can register the Windows logon task for you.
+
+If you prefer the manual path, run `setup_windows.bat` first. If you update from an older install, run it again so `tzdata` is installed too.
 
 2. Capture your session once:
 
@@ -53,7 +55,7 @@ run_signin.bat
 Register a Windows Task Scheduler entry in an elevated PowerShell window:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\register_logon_task.ps1
+register_logon_task.bat
 ```
 
 If the script is not already running as administrator, it now relaunches itself and asks for UAC approval automatically.
@@ -88,11 +90,13 @@ Main settings:
 
 - [`sign_in.py`](./sign_in.py): main sign-in runner
 - [`capture_session.py`](./capture_session.py): one-time login and session capture
+- [`install_efcheck.bat`](./install_efcheck.bat): guided setup for installation, session capture, and task registration
 - [`setup_windows.bat`](./setup_windows.bat): one-click Windows setup
 - [`capture_session.bat`](./capture_session.bat): one-click session capture
 - [`run_signin.bat`](./run_signin.bat): one-click manual run
+- [`register_logon_task.bat`](./register_logon_task.bat): one-click scheduled-task wrapper
 - [`register_logon_task.ps1`](./register_logon_task.ps1): Task Scheduler helper
-- [`package_windows_release.ps1`](./package_windows_release.ps1): build a Windows zip release
+- [`tools/package_windows_release.ps1`](./tools/package_windows_release.ps1): build a Windows zip release
 - [`config/settings.example.json`](./config/settings.example.json): sample config
 
 ## Packaging a Windows release
@@ -100,7 +104,7 @@ Main settings:
 Create a zip package with:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\package_windows_release.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\package_windows_release.ps1
 ```
 
 The output zip is created in `dist/`.

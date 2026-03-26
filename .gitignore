@@ -21,6 +21,8 @@ config/request.curl.txt
 config/*.local.json
 prepare_public_repo.bat
 prepare_public_repo.ps1
+tools/prepare_public_repo.bat
+tools/prepare_public_repo.ps1
 
 *.log
 *.sqlite
