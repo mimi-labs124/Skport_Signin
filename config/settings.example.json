@@ -1,0 +1,11 @@
+{
+  "timezone": "Asia/Taipei",
+  "signin_url": "https://game.skport.com/endfield/sign-in?header=0&hg_media=skport&hg_link_campaign=tools",
+  "state_path": "../state/last_run.json",
+  "log_dir": "../logs",
+  "browser_profile_dir": "../state/browser-profile",
+  "browser_channel": "",
+  "headless": true,
+  "timeout_seconds": 20,
+  "max_attempts_per_day": 2
+}

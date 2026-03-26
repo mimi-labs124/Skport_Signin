@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+logs/
+dist/
+state/
+
+config/settings.json
+config/request.curl.txt
+
+*.log
+*.sqlite
+*.db
+*.zip
