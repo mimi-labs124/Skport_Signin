@@ -59,6 +59,7 @@ register_logon_task.bat
 If the script is not already running as administrator, it now relaunches itself and asks for UAC approval automatically.
 
 The helper adds a short delay after logon before launching the sign-in command.
+The scheduled task now runs through a hidden PowerShell action, so it should not leave a `cmd` window sitting on screen after logon.
 
 ## Configuration
 

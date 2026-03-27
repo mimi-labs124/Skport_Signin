@@ -12,6 +12,43 @@ function Test-IsAdministrator {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function Get-ScheduledLaunchArguments {
+    param(
+        [string]$ScriptRoot,
+        [int]$DelaySeconds
+    )
+
+    $signInPath = Join-Path $ScriptRoot "sign_in.py"
+    if (-not (Test-Path $signInPath)) {
+        throw "Sign-in script not found: $signInPath"
+    }
+
+    $escapedScriptRoot = $ScriptRoot.Replace("'", "''")
+    $escapedSignInPath = $signInPath.Replace("'", "''")
+
+    $command = @"
+Start-Sleep -Seconds $DelaySeconds
+Set-Location -LiteralPath '$escapedScriptRoot'
+if (Test-Path '.\.venv\Scripts\pythonw.exe') {
+    & '.\.venv\Scripts\pythonw.exe' '$escapedSignInPath'
+    exit `$LASTEXITCODE
+}
+if (Test-Path '.\.venv\Scripts\python.exe') {
+    & '.\.venv\Scripts\python.exe' '$escapedSignInPath'
+    exit `$LASTEXITCODE
+}
+if (Get-Command py -ErrorAction SilentlyContinue) {
+    & py -3 '$escapedSignInPath'
+    exit `$LASTEXITCODE
+}
+& python '$escapedSignInPath'
+exit `$LASTEXITCODE
+"@
+
+    $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($command))
+    return "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand $encodedCommand"
+}
+
 if (-not (Test-IsAdministrator)) {
     $selfPath = $MyInvocation.MyCommand.Path
     $elevatedArguments = @(
@@ -40,14 +77,8 @@ if (-not (Test-IsAdministrator)) {
 }
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$runnerPath = Join-Path $scriptRoot "run_signin.bat"
-
-if (-not (Test-Path $runnerPath)) {
-    throw "Runner not found: $runnerPath"
-}
-
-$command = "/c timeout /t $DelaySeconds /nobreak >nul & `"$runnerPath`""
-$action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument $command
+$scheduledArguments = Get-ScheduledLaunchArguments -ScriptRoot $scriptRoot -DelaySeconds $DelaySeconds
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $scheduledArguments
 $trigger = New-ScheduledTaskTrigger -AtLogOn
 $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `
@@ -59,7 +90,7 @@ Register-ScheduledTask `
     -Action $action `
     -Trigger $trigger `
     -Settings $settings `
-    -Description "Run EFCheck at logon with a short delay and let the Python gate limit retries per day." `
+    -Description "Run EFCheck at logon with a short delay in a hidden PowerShell window and let the Python gate limit retries per day." `
     -Force
 
 Write-Host "Registered task: $TaskName"
