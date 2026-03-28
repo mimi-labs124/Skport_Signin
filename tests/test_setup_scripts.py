@@ -14,11 +14,12 @@ class SetupScriptTests(unittest.TestCase):
         script = Path("register_logon_task.ps1").read_text(encoding="utf-8")
 
         self.assertIn("-WindowStyle Hidden", script)
-        self.assertIn('Start-Sleep -Seconds', script)
         self.assertNotIn('New-ScheduledTaskAction -Execute "cmd.exe"', script)
         self.assertIn("-PassThru", script)
         self.assertIn("-Wait", script)
         self.assertIn("exit $proc.ExitCode", script)
+        self.assertIn("-RandomDelay", script)
+        self.assertNotIn("Start-Sleep -Seconds", script)
 
 
 if __name__ == "__main__":

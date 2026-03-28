@@ -14,8 +14,7 @@ function Test-IsAdministrator {
 
 function Get-ScheduledLaunchArguments {
     param(
-        [string]$ScriptRoot,
-        [int]$DelaySeconds
+        [string]$ScriptRoot
     )
 
     $signInPath = Join-Path $ScriptRoot "sign_in.py"
@@ -27,7 +26,6 @@ function Get-ScheduledLaunchArguments {
     $escapedSignInPath = $signInPath.Replace("'", "''")
 
     $command = @"
-Start-Sleep -Seconds $DelaySeconds
 Set-Location -LiteralPath '$escapedScriptRoot'
 if (Test-Path '.\.venv\Scripts\pythonw.exe') {
     & '.\.venv\Scripts\pythonw.exe' '$escapedSignInPath'
@@ -82,9 +80,9 @@ if (-not (Test-IsAdministrator)) {
 }
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$scheduledArguments = Get-ScheduledLaunchArguments -ScriptRoot $scriptRoot -DelaySeconds $DelaySeconds
+$scheduledArguments = Get-ScheduledLaunchArguments -ScriptRoot $scriptRoot
 $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $scheduledArguments
-$trigger = New-ScheduledTaskTrigger -AtLogOn
+$trigger = New-ScheduledTaskTrigger -AtLogOn -RandomDelay ([TimeSpan]::FromSeconds($DelaySeconds))
 $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries `
@@ -95,7 +93,7 @@ Register-ScheduledTask `
     -Action $action `
     -Trigger $trigger `
     -Settings $settings `
-    -Description "Run EFCheck at logon with a short delay in a hidden PowerShell window and let the Python gate limit retries per day." `
+    -Description "Run EFCheck at logon with a Task Scheduler delay and let the Python gate limit retries per day." `
     -Force
 
 Write-Host "Registered task: $TaskName"

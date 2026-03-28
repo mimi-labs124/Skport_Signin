@@ -58,7 +58,7 @@ register_logon_task.bat
 
 如果當前不是管理員權限，這個腳本現在會自動重新開啟自己，並跳出 UAC 要求授權。
 
-建立出的工作排程會在登入後延遲一小段時間，再透過隱藏的 PowerShell 直接啟動 `sign_in.py`。
+建立出的工作排程會交給 Task Scheduler 自己處理登入後延遲，之後再透過隱藏的 PowerShell 直接啟動 `sign_in.py`。
 `run_signin.bat` 仍然保留給手動執行使用，但它不再是工作排程實際呼叫的動作。
 
 ## 設定

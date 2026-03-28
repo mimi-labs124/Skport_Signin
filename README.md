@@ -58,8 +58,7 @@ register_logon_task.bat
 
 If the script is not already running as administrator, it now relaunches itself and asks for UAC approval automatically.
 
-The scheduled task runs a hidden PowerShell command that starts `sign_in.py`
-after a short delay at Windows logon.
+The scheduled task uses Task Scheduler's own logon delay and then runs a hidden PowerShell command that starts `sign_in.py`.
 `run_signin.bat` remains available for manual runs, but it is not the task action itself.
 
 ## Configuration
