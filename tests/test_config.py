@@ -51,8 +51,30 @@ class ConfigTests(unittest.TestCase):
             settings = load_runtime_settings(config_path, "https://example.com")
 
         self.assertEqual([site.key for site in settings.sites], ["endfield", "arknights"])
-        self.assertEqual(settings.sites[1].attendance_path, "/web/v1/game/arknights/attendance")
+        self.assertEqual(settings.sites[1].attendance_path, "/api/v1/game/attendance")
         self.assertEqual(settings.sites[0].browser_profile_dir, settings.sites[1].browser_profile_dir)
+
+    def test_load_runtime_settings_derives_arknights_attendance_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "settings.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "sites": [
+                            {
+                                "key": "arknights",
+                                "name": "Arknights",
+                                "signin_url": "https://game.skport.com/arknights/sign-in",
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            settings = load_runtime_settings(config_path, "https://example.com")
+
+        self.assertEqual(settings.sites[0].attendance_path, "/api/v1/game/attendance")
 
     def test_find_site_matches_by_key_or_name(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

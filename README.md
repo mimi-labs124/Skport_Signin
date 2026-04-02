@@ -29,6 +29,7 @@ install_efcheck.bat
 ```
 
 This guided flow installs dependencies, offers to capture your session, and can register the Windows logon task for you.
+It also asks whether to add the Arknights sign-in page and whether Arknights should share the Endfield browser profile.
 
 If you prefer the manual path, run `setup_windows.bat` first. If you update from an older install, run it again so `tzdata` is installed too.
 
@@ -96,7 +97,7 @@ To add Arknights with the same login session, add a second entry that points to 
   "name": "Arknights",
   "enabled": true,
   "signin_url": "https://game.skport.com/arknights/sign-in",
-  "attendance_path": "/web/v1/game/arknights/attendance",
+  "attendance_path": "/api/v1/game/attendance",
   "state_path": "../state/arknights-last_run.json",
   "browser_profile_dir": "../state/browser-profile"
 }
@@ -139,8 +140,12 @@ The output zip is created in `dist/`.
 
 - Legacy single-site configs still work; they are treated as an Endfield-only setup.
 - `capture_session.py` defaults to `--site endfield`.
-- Arknights support assumes its attendance API path follows `/web/v1/game/arknights/attendance`.
-- If SKPORT uses a different endpoint or DOM flow for Arknights, adjust `attendance_path` and re-test that site live.
+- Guided setup can add Arknights automatically and choose whether it shares the Endfield browser profile.
+- A live check of the logged-in Arknights page currently shows:
+  - GET `https://zonai.skport.com/api/v1/game/attendance?gameId=1&uid=...`
+  - POST `https://zonai.skport.com/api/v1/game/attendance`
+- The default Arknights `attendance_path` is therefore `/api/v1/game/attendance`.
+- If SKPORT changes the endpoint or DOM flow, update `attendance_path` and re-test that site live.
 
 ## Notes
 

@@ -31,9 +31,9 @@ class AttendanceResponseTests(unittest.TestCase):
     def test_matches_custom_attendance_endpoint(self) -> None:
         self.assertTrue(
             is_attendance_response(
-                "https://zonai.skport.com/web/v1/game/arknights/attendance",
+                "https://zonai.skport.com/api/v1/game/attendance?gameId=1&uid=18688682",
                 "GET",
-                "/web/v1/game/arknights/attendance",
+                "/api/v1/game/attendance",
             )
         )
 

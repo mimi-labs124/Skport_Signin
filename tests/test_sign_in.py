@@ -234,7 +234,7 @@ class SignInTests(unittest.TestCase):
                                 "key": "arknights",
                                 "name": "Arknights",
                                 "signin_url": "https://game.skport.com/arknights/sign-in",
-                                "attendance_path": "/web/v1/game/arknights/attendance",
+                                "attendance_path": "/api/v1/game/attendance",
                                 "state_path": "./arknights-state.json",
                                 "browser_profile_dir": "./shared-profile",
                             },
@@ -276,7 +276,7 @@ class SignInTests(unittest.TestCase):
                                 "key": "arknights",
                                 "name": "Arknights",
                                 "signin_url": "https://game.skport.com/arknights/sign-in",
-                                "attendance_path": "/web/v1/game/arknights/attendance",
+                                "attendance_path": "/api/v1/game/attendance",
                                 "state_path": "./arknights-state.json",
                                 "browser_profile_dir": "./shared-profile",
                             },
@@ -319,7 +319,7 @@ class SignInTests(unittest.TestCase):
         self.assertEqual(captured_state_paths, ["endfield-state.json", "arknights-state.json"])
         self.assertEqual(
             captured_attendance_paths,
-            ["/web/v1/game/endfield/attendance", "/web/v1/game/arknights/attendance"],
+            ["/web/v1/game/endfield/attendance", "/api/v1/game/attendance"],
         )
 
     def test_main_reports_state_file_errors_separately(self) -> None:

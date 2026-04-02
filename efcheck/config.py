@@ -19,6 +19,9 @@ DEFAULT_TIMEOUT_SECONDS = 20
 DEFAULT_MAX_ATTEMPTS_PER_DAY = 2
 DEFAULT_ENDFIELD_KEY = "endfield"
 DEFAULT_ENDFIELD_NAME = "Endfield"
+KNOWN_ATTENDANCE_PATHS = {
+    "arknights": "/api/v1/game/attendance",
+}
 
 
 @dataclass(frozen=True)
@@ -161,21 +164,27 @@ def _parse_sites(data: dict, default_url: str) -> list[SiteSettings]:
 
 
 def derive_attendance_path(signin_url: str) -> str:
-    path = urlparse(signin_url).path.rstrip("/")
-    match = re.fullmatch(r"/(?P<slug>[^/]+)/sign-in", path)
-    if not match:
-        raise ConfigError(f"Could not derive attendance path from signin_url {signin_url!r}.")
-    slug = match.group("slug")
+    slug = derive_site_slug(signin_url)
+    if slug in KNOWN_ATTENDANCE_PATHS:
+        return KNOWN_ATTENDANCE_PATHS[slug]
     return f"/web/v1/game/{slug}/attendance"
 
 
 def normalize_site_key(raw_value: object, signin_url: str) -> str:
     if raw_value is None:
-        return derive_attendance_path(signin_url).split("/")[-2]
+        return derive_site_slug(signin_url)
     key = _parse_string(raw_value, field_name="site.key").strip().casefold()
     if not key:
         raise ConfigError("site.key must not be empty.")
     return key
+
+
+def derive_site_slug(signin_url: str) -> str:
+    path = urlparse(signin_url).path.rstrip("/")
+    match = re.fullmatch(r"/(?P<slug>[^/]+)/sign-in", path)
+    if not match:
+        raise ConfigError(f"Could not derive site key from signin_url {signin_url!r}.")
+    return match.group("slug")
 
 
 def _parse_string(value: object, *, field_name: str) -> str:

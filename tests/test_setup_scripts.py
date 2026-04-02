@@ -21,6 +21,15 @@ class SetupScriptTests(unittest.TestCase):
         self.assertIn("-RandomDelay", script)
         self.assertNotIn("Start-Sleep -Seconds", script)
 
+    def test_install_flow_prompts_for_optional_arknights_site(self) -> None:
+        script = Path("install_efcheck.bat").read_text(encoding="utf-8")
+
+        self.assertIn("Include Arknights sign-in too?", script)
+        self.assertIn("Share Endfield browser profile with Arknights?", script)
+        self.assertIn("configure_sites.py", script)
+        self.assertIn("capture_session.py --site endfield", script)
+        self.assertIn("capture_session.py --site arknights", script)
+
 
 if __name__ == "__main__":
     unittest.main()
