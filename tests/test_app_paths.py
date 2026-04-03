@@ -30,7 +30,7 @@ class AppPathsTests(unittest.TestCase):
         ):
             paths = app_paths.build_app_paths()
 
-        expected_base = Path(temp_dir) / "EFCheck"
+        expected_base = (Path(temp_dir) / "EFCheck").resolve()
         self.assertEqual(paths.mode, "packaged")
         self.assertEqual(paths.base_dir, expected_base)
         self.assertEqual(paths.config_file, expected_base / "config" / "settings.json")
@@ -48,6 +48,5 @@ class AppPathsTests(unittest.TestCase):
                 config_override=str(config_path),
             )
 
-        self.assertEqual(paths.base_dir, base_dir)
-        self.assertEqual(paths.config_file, config_path)
-
+        self.assertEqual(paths.base_dir, base_dir.resolve())
+        self.assertEqual(paths.config_file, config_path.resolve())
