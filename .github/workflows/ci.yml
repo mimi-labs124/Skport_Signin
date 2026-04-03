@@ -33,3 +33,36 @@ jobs:
 
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
+
+  packaging-smoke-windows:
+    name: Packaging smoke (Windows onedir)
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Build onedir package
+        run: python -m efcheck package onedir
+
+      - name: Verify packaged executable exists
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/pyinstaller/onedir/efcheck/efcheck.exe")) {
+            throw "Missing dist/pyinstaller/onedir/efcheck/efcheck.exe"
+          }
+
+      - name: Smoke run packaged executable
+        shell: pwsh
+        run: .\dist\pyinstaller\onedir\efcheck\efcheck.exe --help

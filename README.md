@@ -299,6 +299,14 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_windows_release.ps1
 - onefile mode still depends on an external Playwright browser install.
 - Session capture is inherently manual because it depends on an interactive login.
 
+## Support this project
+
+If EFCheck saves you time and you want to support ongoing maintenance, testing, and packaging work, you can support MimiLab on Ko-fi:
+
+[Support EFCheck on Ko-fi](https://ko-fi.com/mimilab)
+
+Support is completely optional. EFCheck remains an unofficial personal-use automation helper maintained in spare time.
+
 ## Development
 
 See:
@@ -306,4 +314,5 @@ See:
 - [CONTRIBUTING.md](./CONTRIBUTING.md)
 - [docs/packaging.md](./docs/packaging.md)
 - [docs/release.md](./docs/release.md)
+- [docs/repo-metadata.md](./docs/repo-metadata.md)
 - [CHANGELOG.md](./CHANGELOG.md)

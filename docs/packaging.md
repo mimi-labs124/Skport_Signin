@@ -66,3 +66,16 @@ Packaged mode uses `%LOCALAPPDATA%\\EFCheck` by default:
 - The spec includes `playwright`, `tzdata`, `config/settings.example.json`, and `register_logon_task.ps1`
 - The batch wrappers remain outside the executable and are included in release archives
 - onefile mode is supported as a CLI distribution, not as a fully self-contained browser payload
+
+
+## CI smoke coverage
+
+GitHub Actions runs a Windows **onedir** packaging smoke build.
+
+It verifies:
+
+- `python -m efcheck package onedir` can start and complete
+- `dist/pyinstaller/onedir/efcheck/efcheck.exe` exists
+- the packaged executable can run `--help`
+
+`onefile` is intentionally excluded from CI smoke to keep runtime and extraction overhead reasonable.

@@ -296,6 +296,14 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_windows_release.ps1
 - onefile 模式仍依賴外部 Playwright browser install。
 - session capture 必須手動完成登入。
 
+## 支持這個專案
+
+如果 EFCheck 對你有幫助，並且你想支持後續維護、測試與打包工作，可以在 Ko-fi 支持 MimiLab：
+
+[在 Ko-fi 支持 EFCheck](https://ko-fi.com/mimilab)
+
+贊助完全是自願的。EFCheck 仍然是一個由業餘時間維護的非官方個人工具。
+
 ## 開發文件
 
 請參考：
@@ -303,4 +311,5 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_windows_release.ps1
 - [CONTRIBUTING.md](./CONTRIBUTING.md)
 - [docs/packaging.md](./docs/packaging.md)
 - [docs/release.md](./docs/release.md)
+- [docs/repo-metadata.md](./docs/repo-metadata.md)
 - [CHANGELOG.md](./CHANGELOG.md)
