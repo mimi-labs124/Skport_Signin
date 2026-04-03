@@ -28,6 +28,7 @@ print(zip_path)
 Push-Location $projectRoot
 try {
     $selectedModes = @()
+    $releaseZips = @()
     if ($Mode -eq "all") {
         $selectedModes = @("onedir", "onefile")
     } else {
@@ -45,8 +46,19 @@ try {
     }
 
     foreach ($selectedMode in $selectedModes) {
-        Invoke-ReleaseZip -SelectedMode $selectedMode
+        Invoke-ReleaseZip -SelectedMode $selectedMode | Out-Null
+        $releaseZip = Join-Path $projectRoot ("dist\\releases\\EFCheck-Windows-{0}.zip" -f $selectedMode)
+        $releaseZips += $releaseZip
     }
+
+    $checksumPath = Join-Path $projectRoot "dist\releases\EFCheck-SHA256.txt"
+    $checksumLines = @()
+    foreach ($releaseZip in $releaseZips) {
+        $hash = (Get-FileHash -Path $releaseZip -Algorithm SHA256).Hash.ToLowerInvariant()
+        $checksumLines += "$hash  $([System.IO.Path]::GetFileName($releaseZip))"
+    }
+    Set-Content -Path $checksumPath -Value $checksumLines -Encoding ascii
+    Write-Host $checksumPath
 }
 finally {
     Pop-Location

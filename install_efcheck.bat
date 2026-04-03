@@ -23,12 +23,30 @@ if exist ".\efcheck.exe" (
 )
 
 echo.
-set /p INCLUDE_ARKNIGHTS=Include Arknights sign-in too? [Y/N]:
-set "CONFIGURE_ARGS="
-if /I "%INCLUDE_ARKNIGHTS%"=="Y" (
+set /p ENABLE_ENDFIELD=Enable Endfield sign-in? [Y/n]:
+set /p ENABLE_ARKNIGHTS=Enable Arknights sign-in? [y/N]:
+
+set "ENABLE_ENDFIELD_NORMALIZED=%ENABLE_ENDFIELD%"
+if not defined ENABLE_ENDFIELD_NORMALIZED set "ENABLE_ENDFIELD_NORMALIZED=Y"
+set "ENABLE_ARKNIGHTS_NORMALIZED=%ENABLE_ARKNIGHTS%"
+if not defined ENABLE_ARKNIGHTS_NORMALIZED set "ENABLE_ARKNIGHTS_NORMALIZED=N"
+
+if /I not "%ENABLE_ENDFIELD_NORMALIZED%"=="Y" if /I not "%ENABLE_ARKNIGHTS_NORMALIZED%"=="Y" (
+  echo No site selected. Defaulting to Endfield enabled.
+  set "ENABLE_ENDFIELD_NORMALIZED=Y"
+)
+
+set "CONFIGURE_ARGS=--disable-site endfield --disable-site arknights"
+if /I "%ENABLE_ENDFIELD_NORMALIZED%"=="Y" (
+  set "CONFIGURE_ARGS=%CONFIGURE_ARGS% --enable-site endfield"
+)
+if /I "%ENABLE_ARKNIGHTS_NORMALIZED%"=="Y" (
+  set "CONFIGURE_ARGS=%CONFIGURE_ARGS% --enable-site arknights"
+)
+
+if /I "%ENABLE_ENDFIELD_NORMALIZED%"=="Y" if /I "%ENABLE_ARKNIGHTS_NORMALIZED%"=="Y" (
   echo.
   set /p SHARE_PROFILE=Share Endfield browser profile with Arknights? [Y/N]:
-  set "CONFIGURE_ARGS=--include-arknights"
   if /I "%SHARE_PROFILE%"=="Y" (
     set "CONFIGURE_ARGS=%CONFIGURE_ARGS% --share-arknights-profile"
   )
@@ -40,10 +58,12 @@ if errorlevel 1 exit /b 1
 echo.
 set /p CAPTURE_NOW=Capture your sign-in session now? [Y/N]:
 if /I "%CAPTURE_NOW%"=="Y" (
-  %EFCHECK_CMD% capture-session --site endfield
-  if errorlevel 1 exit /b 1
+  if /I "%ENABLE_ENDFIELD_NORMALIZED%"=="Y" (
+    %EFCHECK_CMD% capture-session --site endfield
+    if errorlevel 1 exit /b 1
+  )
 
-  if /I "%INCLUDE_ARKNIGHTS%"=="Y" (
+  if /I "%ENABLE_ARKNIGHTS_NORMALIZED%"=="Y" (
     echo.
     echo Continue with the Arknights page in the same guided capture flow.
     %EFCHECK_CMD% capture-session --site arknights

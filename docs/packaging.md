@@ -30,6 +30,8 @@ powershell -ExecutionPolicy Bypass -File .\packaging\build_onefile.ps1
 powershell -ExecutionPolicy Bypass -File .\packaging\package_release.ps1
 ```
 
+This script also writes `dist/releases/EFCheck-SHA256.txt` for the generated release assets.
+
 ## Output layout
 
 Build output roots:

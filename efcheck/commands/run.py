@@ -72,20 +72,13 @@ def run_command(*, runtime: RuntimeContext, dry_run: bool, force: bool) -> int:
         previous_state = load_state(state_path)
 
         if not force:
-            allowed, previous_state = should_run_today(
-                state_path,
-                today,
-                max_attempts_per_day=settings.max_attempts_per_day,
-            )
+            allowed, previous_state = should_run_today(state_path, today)
             if not allowed:
                 message = prefix_site_message(
                     site,
                     (
                         f"Skipped: already attempted on {previous_state.last_attempt_date} "
-                        f"with status {previous_state.last_status} "
-                        "("
-                        f"{previous_state.attempts_today}/"
-                        f"{settings.max_attempts_per_day} attempts today)."
+                        f"with status {previous_state.last_status}."
                     ),
                 )
                 write_log(log_dir, now, "SKIPPED_ALREADY_ATTEMPTED", message)
@@ -113,7 +106,6 @@ def run_command(*, runtime: RuntimeContext, dry_run: bool, force: bool) -> int:
             RunGateState(
                 last_attempt_date=today,
                 last_status=status,
-                attempts_today=next_attempt_count(previous_state, today),
                 updated_at=now.isoformat(),
             ),
         )
@@ -351,13 +343,6 @@ def page_has_login_form(page) -> bool:
         except Exception:
             continue
     return False
-
-
-def next_attempt_count(previous_state: RunGateState, today: str) -> int:
-    if previous_state.last_attempt_date == today:
-        return previous_state.attempts_today + 1
-    return 1
-
 
 def prefix_site_message(site: SiteSettings, message: str) -> str:
     return f"[{site.name}] {message}"

@@ -4,7 +4,6 @@
   "browser_channel": "",
   "headless": true,
   "timeout_seconds": 20,
-  "max_attempts_per_day": 2,
   "sites": [
     {
       "key": "endfield",
@@ -14,6 +13,15 @@
       "attendance_path": "/web/v1/game/endfield/attendance",
       "state_path": "../state/endfield-last_run.json",
       "browser_profile_dir": "../state/browser-profile"
+    },
+    {
+      "key": "arknights",
+      "name": "Arknights",
+      "enabled": false,
+      "signin_url": "https://game.skport.com/arknights/sign-in",
+      "attendance_path": "/api/v1/game/attendance",
+      "state_path": "../state/arknights-last_run.json",
+      "browser_profile_dir": "../state/arknights-browser-profile"
     }
   ]
 }

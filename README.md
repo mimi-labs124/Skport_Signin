@@ -1,13 +1,13 @@
 # EFCheck
 
-[繁體中文說明](./README.zh-TW.md)
+[繁體中文版](./README.zh-TW.md)
 
 EFCheck is an unofficial Windows-first automation helper for the SKPORT daily sign-in pages used by Arknights: Endfield and Arknights.
 
 It supports two operating modes:
 
 - Source mode: clone the repository and run it with Python
-- Packaged mode: use the Windows onedir or onefile build outputs
+- Packaged mode: use the Windows `onedir` or `onefile` build outputs
 
 EFCheck stores browser session state locally and never expects those files to be published. Read [SECURITY.md](./SECURITY.md) before sharing anything built from your workspace.
 
@@ -15,7 +15,8 @@ EFCheck stores browser session state locally and never expects those files to be
 
 - Captures a Playwright browser profile and reuses the saved session
 - Signs in one or more enabled SKPORT game pages in sequence
-- Keeps per-site local state and retry gates
+- Writes a full known-site config with per-site `enabled: true/false`
+- Keeps per-site same-day completion state so completed sites are skipped on later runs
 - Can register a Windows logon scheduled task
 - Supports a unified CLI and compatibility batch wrappers
 - Can be packaged as:
@@ -38,7 +39,7 @@ Never publish or share these:
 - any browser profile directory
 - any copied cookie/session dump
 
-Those directories may contain cookies, local storage, access tokens, or other login material.
+Those locations may contain cookies, local storage, access tokens, or other login material.
 
 ## Quick start
 
@@ -55,14 +56,14 @@ The guided flow will:
 
 - install the Python package into `.venv`
 - initialize local config
-- optionally add Arknights
-- optionally choose whether Arknights shares the Endfield browser profile
-- optionally capture sessions
+- ask which known sites to enable
+- optionally let Arknights share the Endfield browser profile when both are enabled
+- optionally capture sessions for the enabled sites
 - optionally register the Windows logon task
 
 ### Packaged mode
 
-Use either the onedir or onefile release output and run:
+Use either the `onedir` or `onefile` release output and run:
 
 ```bat
 install_efcheck.bat
@@ -96,8 +97,28 @@ Available commands:
 - `efcheck package onedir`
 - `efcheck package onefile`
 
-`efcheck package ...` is source-mode only. A packaged `efcheck.exe` can run the
-operational commands, but it is not intended to rebuild PyInstaller artifacts.
+`efcheck package ...` is source-mode only. A packaged `efcheck.exe` can run the operational commands, but it is not intended to rebuild PyInstaller artifacts.
+
+## Site configuration model
+
+`settings.json` always contains the full known-site list. Currently that means:
+
+- `endfield`
+- `arknights`
+
+Each site stays in config even when disabled. Toggle sites with:
+
+```powershell
+python -m efcheck configure-sites --enable-site endfield --disable-site arknights
+python -m efcheck configure-sites --enable-site arknights --share-arknights-profile
+```
+
+The active gate is completion-only:
+
+- if a site already reached `SUCCESS` or `ALREADY_DONE` today, that site is skipped
+- if a site failed earlier today, EFCheck allows another run
+
+There is no active retry counter in the current config or newly written state files.
 
 ## Typical workflow
 
@@ -107,7 +128,7 @@ operational commands, but it is not intended to rebuild PyInstaller artifacts.
 python -m efcheck init
 ```
 
-This creates a default `settings.json` if one does not already exist.
+This creates a default `settings.json` if one does not already exist. The default config enables Endfield and keeps Arknights present but disabled.
 
 ### 2. Inspect resolved paths
 
@@ -119,17 +140,17 @@ Config resolution order:
 
 1. `--config`
 2. `EFCHECK_CONFIG`
-3. packaged-mode default: `%LOCALAPPDATA%\\EFCheck\\config\\settings.json`
-4. source-mode default: `<repo>\\config\\settings.json`
+3. packaged-mode default: `%LOCALAPPDATA%\EFCheck\config\settings.json`
+4. source-mode default: `<repo>\config\settings.json`
 
 Base directory resolution order:
 
 1. `--base-dir`
 2. `EFCHECK_BASE_DIR`
-3. packaged-mode default: `%LOCALAPPDATA%\\EFCheck`
+3. packaged-mode default: `%LOCALAPPDATA%\EFCheck`
 4. source-mode default: repository root
 
-### 3. Capture a session
+### 3. Capture sessions
 
 ```powershell
 python -m efcheck capture-session --site endfield
@@ -171,16 +192,14 @@ register_logon_task.bat
 
 ### Packaged mode defaults
 
-- Base dir: `%LOCALAPPDATA%\\EFCheck`
-- Config: `%LOCALAPPDATA%\\EFCheck\\config\\settings.json`
-- State: `%LOCALAPPDATA%\\EFCheck\\state\\`
-- Logs: `%LOCALAPPDATA%\\EFCheck\\logs\\`
-- Runtime: `%LOCALAPPDATA%\\EFCheck\\runtime\\`
-- Browser profiles: `%LOCALAPPDATA%\\EFCheck\\browser-profile\\`
+- Base dir: `%LOCALAPPDATA%\EFCheck`
+- Config: `%LOCALAPPDATA%\EFCheck\config\settings.json`
+- State: `%LOCALAPPDATA%\EFCheck\state\`
+- Logs: `%LOCALAPPDATA%\EFCheck\logs\`
+- Runtime: `%LOCALAPPDATA%\EFCheck\runtime\`
+- Browser profiles: `%LOCALAPPDATA%\EFCheck\browser-profile\`
 
 ## Browser runtime
-
-Source mode and packaged mode deliberately differ here.
 
 ### Source mode
 
@@ -196,7 +215,7 @@ playwright install chromium
 python -m efcheck doctor --install-browser
 ```
 
-which is the supported bootstrap path for this project.
+That is the supported bootstrap path for this project.
 
 ### Packaged mode
 
@@ -215,8 +234,8 @@ This installs the browser runtime into the packaged EFCheck data directory under
 ### one-folder
 
 - Preferred for reliability
-- Fastest startup
-- Easiest to debug
+- Faster startup
+- Easier to debug
 - Recommended for most users
 
 ### one-file
@@ -236,7 +255,7 @@ These are kept for compatibility and user convenience:
 - [`run_signin.bat`](./run_signin.bat)
 - [`register_logon_task.bat`](./register_logon_task.bat)
 
-They now prefer `efcheck.exe` when present, otherwise they call `python -m efcheck ...`.
+They prefer `efcheck.exe` when present, otherwise they call `python -m efcheck ...`.
 
 ## Building packages
 
@@ -270,6 +289,12 @@ python -m efcheck package onefile
 powershell -ExecutionPolicy Bypass -File .\packaging\package_release.ps1
 ```
 
+This writes:
+
+- `EFCheck-Windows-onedir.zip`
+- `EFCheck-Windows-onefile.zip`
+- `EFCheck-SHA256.txt`
+
 Legacy wrapper:
 
 ```powershell
@@ -281,14 +306,13 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_windows_release.ps1
 - `Missing dependency: playwright ...`
   Install project dependencies and then bootstrap the browser runtime.
 - `Missing file: Playwright Chromium is not installed ...`
-  In source mode, run `playwright install chromium`. In packaged mode, run
-  `efcheck doctor --install-browser`.
+  In source mode, run `playwright install chromium`. In packaged mode, run `efcheck doctor --install-browser`.
 - `Browser profile not found ...`
-  Run `capture_session` first.
+  Run `capture-session` first.
 - `SESSION_EXPIRED`
   Re-run session capture for the affected site.
 - `Configuration error`
-  Validate `settings.json`, especially booleans and integer fields.
+  Validate `settings.json`, especially booleans, integers, and site keys.
 - No scheduled task visible
   Re-run `register-task` and approve the UAC elevation prompt.
 

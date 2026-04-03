@@ -4,7 +4,7 @@ This file tracks recommended GitHub "About" settings that cannot be fully manage
 
 ## Suggested description
 
-Windows-first SKPORT sign-in helper for Endfield and Arknights, with Playwright session capture, scheduled runs, and PyInstaller packaging.
+Windows-first SKPORT sign-in helper with selectable Endfield and Arknights support, Playwright session capture, scheduled runs, and PyInstaller packaging.
 
 ## Suggested topics
 

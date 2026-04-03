@@ -16,7 +16,10 @@ class ConfigTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            settings = load_runtime_settings(config_path, "https://example.com")
+            settings = load_runtime_settings(
+                config_path,
+                "https://game.skport.com/endfield/sign-in",
+            )
 
         self.assertEqual(len(settings.sites), 1)
         self.assertEqual(settings.sites[0].key, "endfield")
@@ -48,7 +51,10 @@ class ConfigTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            settings = load_runtime_settings(config_path, "https://example.com")
+            settings = load_runtime_settings(
+                config_path,
+                "https://game.skport.com/endfield/sign-in",
+            )
 
         self.assertEqual([site.key for site in settings.sites], ["endfield", "arknights"])
         self.assertEqual(settings.sites[1].attendance_path, "/api/v1/game/attendance")
@@ -56,6 +62,7 @@ class ConfigTests(unittest.TestCase):
             settings.sites[0].browser_profile_dir,
             settings.sites[1].browser_profile_dir,
         )
+        self.assertFalse(hasattr(settings, "max_attempts_per_day"))
 
     def test_load_runtime_settings_derives_arknights_attendance_path(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -75,7 +82,10 @@ class ConfigTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            settings = load_runtime_settings(config_path, "https://example.com")
+            settings = load_runtime_settings(
+                config_path,
+                "https://game.skport.com/endfield/sign-in",
+            )
 
         self.assertEqual(settings.sites[0].attendance_path, "/api/v1/game/attendance")
 
@@ -101,7 +111,10 @@ class ConfigTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            settings = load_runtime_settings(config_path, "https://example.com")
+            settings = load_runtime_settings(
+                config_path,
+                "https://game.skport.com/endfield/sign-in",
+            )
 
         self.assertEqual(find_site(settings, "arknights").name, "Arknights")
         self.assertEqual(find_site(settings, "Endfield").key, "endfield")
@@ -139,7 +152,7 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaises(ConfigError):
                 load_runtime_settings(config_path, "https://example.com")
 
-    def test_load_runtime_settings_rejects_nonpositive_max_attempts(self) -> None:
+    def test_load_runtime_settings_ignores_legacy_max_attempts_field(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             config_path = Path(temp_dir) / "settings.json"
             config_path.write_text(
@@ -147,8 +160,41 @@ class ConfigTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            with self.assertRaises(ConfigError):
-                load_runtime_settings(config_path, "https://example.com")
+            settings = load_runtime_settings(
+                config_path,
+                "https://game.skport.com/endfield/sign-in",
+            )
+
+        self.assertEqual(settings.sites[0].key, "endfield")
+
+    def test_load_runtime_settings_allows_disabled_known_sites(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "settings.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "sites": [
+                            {
+                                "key": "endfield",
+                                "name": "Endfield",
+                                "signin_url": "https://game.skport.com/endfield/sign-in",
+                                "enabled": True,
+                            },
+                            {
+                                "key": "arknights",
+                                "name": "Arknights",
+                                "signin_url": "https://game.skport.com/arknights/sign-in",
+                                "enabled": False,
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            settings = load_runtime_settings(config_path, "https://example.com")
+
+        self.assertEqual([site.enabled for site in settings.sites], [True, False])
 
     def test_load_runtime_settings_rejects_unknown_sites_shape(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

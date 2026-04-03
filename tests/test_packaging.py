@@ -32,3 +32,8 @@ class PackagingTests(unittest.TestCase):
 
         self.assertIn('$env:EFCHECK_PROJECT_ROOT = $projectRoot', script)
         self.assertIn('os.environ["EFCHECK_PROJECT_ROOT"]', script)
+
+    def test_package_release_script_generates_checksum_asset(self) -> None:
+        script = Path("packaging/package_release.ps1").read_text(encoding="utf-8")
+
+        self.assertIn("EFCheck-SHA256.txt", script)

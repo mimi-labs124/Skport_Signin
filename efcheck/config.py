@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
 
+from efcheck.default_settings import (
+    ARKNIGHTS_KEY,
+    ENDFIELD_KEY,
+    KNOWN_SITES,
+)
 from efcheck.errors import ConfigError
 
 DEFAULT_TIMEZONE = "Asia/Taipei"
@@ -15,12 +20,10 @@ DEFAULT_BROWSER_PROFILE_DIR = "../state/browser-profile"
 DEFAULT_BROWSER_CHANNEL = ""
 DEFAULT_HEADLESS = True
 DEFAULT_TIMEOUT_SECONDS = 20
-DEFAULT_MAX_ATTEMPTS_PER_DAY = 2
-DEFAULT_ENDFIELD_KEY = "endfield"
-DEFAULT_ENDFIELD_NAME = "Endfield"
 KNOWN_ATTENDANCE_PATHS = {
-    "arknights": "/api/v1/game/attendance",
+    ARKNIGHTS_KEY: "/api/v1/game/attendance",
 }
+DEFAULT_ENDFIELD_KEY = ENDFIELD_KEY
 
 
 @dataclass(frozen=True)
@@ -41,7 +44,6 @@ class RuntimeSettings:
     browser_channel: str
     headless: bool
     timeout_seconds: int
-    max_attempts_per_day: int
     sites: tuple[SiteSettings, ...]
 
 
@@ -71,11 +73,6 @@ def load_runtime_settings(config_path: Path, default_url: str) -> RuntimeSetting
             field_name="timeout_seconds",
             minimum=1,
         ),
-        max_attempts_per_day=_parse_int(
-            data.get("max_attempts_per_day", DEFAULT_MAX_ATTEMPTS_PER_DAY),
-            field_name="max_attempts_per_day",
-            minimum=1,
-        ),
         sites=tuple(sites),
     )
 
@@ -88,7 +85,7 @@ def resolve_path(config_path: Path, raw_path: str) -> Path:
 
 
 def find_site(settings: RuntimeSettings, selected_site: str | None) -> SiteSettings:
-    key = (selected_site or DEFAULT_ENDFIELD_KEY).strip().casefold()
+    key = (selected_site or ENDFIELD_KEY).strip().casefold()
     for site in settings.sites:
         if site.key.casefold() == key or site.name.casefold() == key:
             return site
@@ -104,8 +101,8 @@ def _parse_sites(data: dict, default_url: str) -> list[SiteSettings]:
         signin_url = _parse_string(data.get("signin_url", default_url), field_name="signin_url")
         return [
             SiteSettings(
-                key=DEFAULT_ENDFIELD_KEY,
-                name=DEFAULT_ENDFIELD_NAME,
+                key=ENDFIELD_KEY,
+                name=next(site.name for site in KNOWN_SITES if site.key == ENDFIELD_KEY),
                 signin_url=signin_url,
                 attendance_path=_parse_string(
                     data.get("attendance_path", derive_attendance_path(signin_url)),

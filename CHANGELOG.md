@@ -7,19 +7,20 @@ The format is based on Keep a Changelog and uses a simple `major.minor.patch` ve
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-03
+
 ### Added
 
-- Ko-fi support sections in `README.md` and `README.zh-TW.md` with optional-support wording
-- Markdown issue templates for bug reports and feature requests
-- Uppercase-path pull request template (`.github/PULL_REQUEST_TEMPLATE.md`) aligned with repository checklist expectations
-- `docs/repo-metadata.md` for GitHub About and release naming recommendations
-- Windows packaging smoke job in CI (`onedir` build + `efcheck.exe --help` smoke run)
+- Catalog-driven known-site configuration that writes both `endfield` and `arknights` into config with per-site `enabled` flags
+- Generic `configure-sites` CLI flags for enabling/disabling known sites instead of a hardcoded Arknights toggle
+- Release checksum output (`EFCheck-SHA256.txt`) alongside Windows release archives
 
 ### Changed
 
-- Expanded `docs/release.md` with explicit download guidance (onedir vs onefile), checksum recommendation, and release-note structure
-- Expanded `docs/packaging.md` with CI smoke-test scope and onefile exclusion rationale
-- Updated `CONTRIBUTING.md` with issue/PR template and release workflow expectations
+- Simplified the daily gate to same-day completion tracking only; retry counting was removed from new state files and active config
+- Updated guided setup to ask which sites to enable and whether Arknights should share the Endfield profile only when both are enabled
+- Refreshed `settings.example.json`, README docs, and release guidance for the enabled/disabled site model
+- Bumped package and release metadata from `0.2.0` to `0.3.0`
 
 ## [0.2.0] - 2026-04-03
 

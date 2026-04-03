@@ -21,11 +21,14 @@ class SetupScriptTests(unittest.TestCase):
         self.assertIn("efcheck.exe", script)
         self.assertIn("-m efcheck run", script)
 
-    def test_install_flow_prompts_for_optional_arknights_site(self) -> None:
+    def test_install_flow_prompts_for_site_selection(self) -> None:
         script = Path("install_efcheck.bat").read_text(encoding="utf-8")
 
-        self.assertIn("Include Arknights sign-in too?", script)
+        self.assertIn("Enable Endfield sign-in?", script)
+        self.assertIn("Enable Arknights sign-in?", script)
         self.assertIn("Share Endfield browser profile with Arknights?", script)
+        self.assertIn("--enable-site endfield", script)
+        self.assertIn("--enable-site arknights", script)
         self.assertIn(" configure-sites ", script)
         self.assertIn(" capture-session --site endfield", script)
         self.assertIn(" capture-session --site arknights", script)

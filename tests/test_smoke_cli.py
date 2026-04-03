@@ -1,4 +1,5 @@
 import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -30,6 +31,12 @@ class SmokeCliTests(unittest.TestCase):
                 cli.main(["--base-dir", str(base_dir), "paths", "--json"], stdout=paths_stdout),
                 0,
             )
+
+            config_path = base_dir / "config" / "settings.json"
+            data = json.loads(config_path.read_text(encoding="utf-8"))
+
+        self.assertEqual([site["key"] for site in data["sites"]], ["endfield", "arknights"])
+        self.assertEqual([site["enabled"] for site in data["sites"]], [True, False])
 
     def test_package_subcommands_dispatch_to_builder(self) -> None:
         with patch(

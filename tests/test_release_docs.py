@@ -20,6 +20,17 @@ class ReleaseDocsTests(unittest.TestCase):
         for path in required_files:
             self.assertTrue(path.exists(), f"Missing required doc file: {path}")
 
+    def test_release_docs_reference_v030_and_onedir_recommendation(self) -> None:
+        changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+        release_doc = Path("docs/release.md").read_text(encoding="utf-8")
+        readme = Path("README.md").read_text(encoding="utf-8")
+
+        self.assertIn("[0.3.0]", changelog)
+        self.assertIn("Tag: `v0.3.0`", release_doc)
+        self.assertIn("recommend **onedir** first", release_doc)
+        self.assertIn("enabled: true/false", readme)
+        self.assertIn("same-day completion state", readme)
+
     def test_ci_covers_windows_ruff_tests_and_packaging_smoke(self) -> None:
         ci_text = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
