@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security reporting
-    url: https://github.com/mimi-labs124/Skport_EFCheck/security/policy
+    url: https://github.com/mimi-labs124/Skport_Signin/security/policy
     about: Do not open public issues for credential or session exposure problems.
