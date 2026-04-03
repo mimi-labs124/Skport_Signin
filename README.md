@@ -18,10 +18,10 @@ Skport_Signin stores browser session state locally and never expects those files
 - Writes a full known-site config with per-site `enabled: true/false`
 - Keeps per-site same-day completion state so completed sites are skipped on later runs
 - Can register a Windows logon scheduled task
-- Supports a unified CLI and compatibility batch wrappers
+- Includes one CLI entry point plus Windows batch launchers
 - Can be packaged as:
   - a portable one-folder Windows build
-  - a single-file Windows executable with external browser bootstrap
+  - a single-file Windows executable that still uses an external browser install
 
 ## Supported platform
 
@@ -54,9 +54,9 @@ install_skport_signin.bat
 
 The guided flow will:
 
-- install the Python package into `.venv`
-- bootstrap the Playwright browser runtime
-- hand off to `skport_signin setup --interactive`
+- install the package into `.venv`
+- install the Playwright Chromium runtime
+- start `skport_signin setup --interactive`
 
 ### Packaged mode
 
@@ -66,7 +66,7 @@ Use either the `onedir` or `onefile` release output and run:
 install_skport_signin.bat
 ```
 
-In packaged mode the wrappers prefer `skport_signin.exe` automatically.
+In packaged mode the batch launchers use `skport_signin.exe` automatically when it is present.
 
 ## Unified CLI
 
@@ -126,7 +126,7 @@ There is no active retry counter in the current config or newly written state fi
 python -m skport_signin setup --interactive
 ```
 
-This guided flow initializes config if needed, asks which sites to enable, optionally shares the Endfield profile with Arknights, and can immediately chain into session capture and task registration.
+This guided flow creates config if needed, asks which sites to enable, can let Arknights share the Endfield profile, and can continue straight into session capture and task registration.
 
 ### 2. Initialize config manually
 
@@ -215,17 +215,17 @@ You can still use the standard Playwright install flow:
 playwright install chromium
 ```
 
-`setup_windows.bat` instead runs:
+`setup_windows.bat` runs:
 
 ```powershell
 python -m skport_signin doctor --install-browser
 ```
 
-That is the supported bootstrap path for this project.
+That is the recommended install path for this project.
 
 ### Packaged mode
 
-The executable does not bundle a full Chromium browser runtime inside the executable itself.
+The executable does not bundle a full Chromium browser runtime.
 
 Instead, run:
 
@@ -233,7 +233,7 @@ Instead, run:
 skport_signin doctor --install-browser
 ```
 
-This installs the browser runtime into the packaged Skport_Signin data directory under `runtime/playwright-browsers`.
+That installs the browser runtime into the packaged Skport_Signin data directory under `runtime/playwright-browsers`.
 
 ## one-folder vs one-file
 
@@ -248,12 +248,12 @@ This installs the browser runtime into the packaged Skport_Signin data directory
 
 - More portable
 - Slower startup because PyInstaller extracts at launch
-- Still requires external browser bootstrap
-- Best treated as a convenient CLI binary, not a fully self-contained browser payload
+- Still requires a separate browser install
+- Best treated as a convenient CLI binary, not a fully self-contained browser package
 
 ## Batch wrappers
 
-These are kept for compatibility and user convenience:
+These are kept for compatibility and convenience:
 
 - [`install_skport_signin.bat`](./install_skport_signin.bat)
 - [`setup_windows.bat`](./setup_windows.bat)
@@ -261,7 +261,7 @@ These are kept for compatibility and user convenience:
 - [`run_signin.bat`](./run_signin.bat)
 - [`register_logon_task.bat`](./register_logon_task.bat)
 
-They prefer `skport_signin.exe` when present, otherwise they call `python -m skport_signin ...`.
+They use `skport_signin.exe` when present, otherwise they call `python -m skport_signin ...`.
 
 ## Building packages
 
@@ -312,7 +312,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_windows_release.ps1
 - `setup --interactive` fails after config changes
   Run `skport_signin doctor --json` to inspect config validity, enabled sites, and writable path health.
 - `Missing dependency: playwright ...`
-  Install project dependencies and then bootstrap the browser runtime.
+  Install project dependencies and then install the browser runtime.
 - `Missing file: Playwright Chromium is not installed ...`
   In source mode, run `playwright install chromium`. In packaged mode, run `skport_signin doctor --install-browser`.
 - `Browser profile not found ...`

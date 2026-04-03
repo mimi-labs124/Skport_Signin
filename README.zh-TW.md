@@ -21,10 +21,10 @@ Skport_Signin 會把登入 session 保存在本機。請在分享任何工作區
 - `settings.json` 永遠保留完整已知站點清單，並以 `enabled: true/false` 控制是否啟用
 - 保留每站「當日已完成」狀態，避免同一天重複對已完成站點再跑一次
 - 可註冊 Windows 登入時排程
-- 提供統一 CLI 與相容的 batch wrapper
+- 提供統一命令列入口與相容的批次啟動檔
 - 可打包成：
   - one-folder Windows 發行包
-  - one-file Windows 可執行檔（仍需外部 browser bootstrap）
+  - one-file Windows 可執行檔（仍需另外安裝瀏覽器執行環境）
 
 ## 支援平台
 
@@ -58,8 +58,8 @@ install_skport_signin.bat
 引導式流程會：
 
 - 在 `.venv` 安裝 Python 套件
-- bootstrap Playwright browser runtime
-- 接著轉交給 `skport_signin setup --interactive`
+- 安裝 Playwright Chromium 執行環境
+- 接著執行 `skport_signin setup --interactive`
 
 ### 打包模式
 
@@ -69,7 +69,7 @@ install_skport_signin.bat
 install_skport_signin.bat
 ```
 
-在打包模式下，wrapper 會優先使用 `skport_signin.exe`。
+在打包模式下，批次啟動檔會優先使用 `skport_signin.exe`。
 
 ## 統一 CLI
 
@@ -129,7 +129,7 @@ python -m skport_signin configure-sites --enable-site arknights --share-arknight
 python -m skport_signin setup --interactive
 ```
 
-這個流程會在需要時初始化設定檔、詢問要啟用哪些站點、視需要設定 Arknights 共用 Endfield profile，並可直接接續 session capture 與排程註冊。
+這個流程會在需要時建立設定檔、詢問要啟用哪些站點、視需要讓 Arknights 共用 Endfield profile，並可直接接續 session 擷取與排程註冊。
 
 ### 2. 手動初始化設定檔
 
@@ -152,7 +152,7 @@ python -m skport_signin paths --json
 3. 打包模式預設：`%LOCALAPPDATA%\Skport_Signin\config\settings.json`
 4. 原始碼模式預設：`<repo>\config\settings.json`
 
-Base directory 解析順序：
+基底目錄解析順序：
 
 1. `--base-dir`
 2. `SKPORT_SIGNIN_BASE_DIR`
@@ -218,17 +218,17 @@ register_logon_task.bat
 playwright install chromium
 ```
 
-`setup_windows.bat` 會改跑：
+`setup_windows.bat` 會執行：
 
 ```powershell
 python -m skport_signin doctor --install-browser
 ```
 
-這是本專案建議的 bootstrap 方式。
+這是本專案建議的安裝方式。
 
 ### 打包模式
 
-可執行檔本身不會內嵌完整 Chromium browser runtime。
+可執行檔本身不會內嵌完整 Chromium 瀏覽器執行環境。
 
 請先執行：
 
@@ -236,7 +236,7 @@ python -m skport_signin doctor --install-browser
 skport_signin doctor --install-browser
 ```
 
-這會把 browser runtime 安裝到 `%LOCALAPPDATA%\Skport_Signin\runtime\playwright-browsers`。
+這會把瀏覽器執行環境安裝到 `%LOCALAPPDATA%\Skport_Signin\runtime\playwright-browsers`。
 
 ## one-folder vs one-file
 
@@ -251,12 +251,12 @@ skport_signin doctor --install-browser
 
 - 較方便攜帶
 - 啟動較慢，因為 PyInstaller 會先解壓
-- 仍需要外部 browser bootstrap
-- 比較適合作為方便攜帶的 CLI，不是完整自含 browser payload
+- 仍需要另外安裝瀏覽器執行環境
+- 比較適合作為方便攜帶的 CLI，不是完整自含的瀏覽器包
 
 ## Batch wrappers
 
-以下 wrapper 會保留：
+以下批次啟動檔會保留：
 
 - [`install_skport_signin.bat`](./install_skport_signin.bat)
 - [`setup_windows.bat`](./setup_windows.bat)
@@ -264,7 +264,7 @@ skport_signin doctor --install-browser
 - [`run_signin.bat`](./run_signin.bat)
 - [`register_logon_task.bat`](./register_logon_task.bat)
 
-當 `skport_signin.exe` 存在時，wrapper 會優先使用它；否則退回 `python -m skport_signin ...`。
+當 `skport_signin.exe` 存在時，這些啟動檔會優先使用它；否則退回 `python -m skport_signin ...`。
 
 ## 打包
 
@@ -315,7 +315,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_windows_release.ps1
 - `setup --interactive` 在修改設定後失敗
   先跑 `skport_signin doctor --json`，檢查 config 是否有效、哪些站點已啟用，以及各路徑是否可寫。
 - `Missing dependency: playwright ...`
-  先安裝專案依賴，再執行 browser bootstrap。
+  先安裝專案依賴，再安裝瀏覽器執行環境。
 - `Missing file: Playwright Chromium is not installed ...`
   原始碼模式請跑 `playwright install chromium`；打包模式請跑 `skport_signin doctor --install-browser`。
 - `Browser profile not found ...`
@@ -331,7 +331,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_windows_release.ps1
 
 - 本工具依賴 SKPORT 頁面結構與 request 模式；網站改版後可能失效。
 - Arknights 與 Endfield 的 attendance endpoint 形狀不同。
-- onefile 仍依賴外部 Playwright browser 安裝。
+- onefile 仍依賴外部 Playwright 瀏覽器安裝。
 - session capture 必須手動登入，無法完全自動化。
 
 ## 支援這個專案

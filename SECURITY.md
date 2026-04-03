@@ -5,6 +5,8 @@ Skport_Signin stores an authenticated browser session in a local Playwright pers
 Treat the following as sensitive data:
 
 - `state/browser-profile/`
+- `state/*-browser-profile/`
+- `%LOCALAPPDATA%\Skport_Signin\browser-profile\`
 - `state/`
 - `logs/`
 - `config/settings.json`
@@ -26,11 +28,10 @@ Check that you are **not** including:
 ## If you think a session was exposed
 
 1. Invalidate or log out the affected SKPORT session.
-2. Delete the local `state/browser-profile/` directory.
+2. Delete the affected local browser profile directory or directories.
 3. Run `capture_session.bat` again to create a fresh session.
 4. Rotate any other credentials that may have been stored in the same browser profile.
 
 ## Reporting
 
 This is an unofficial personal-use automation helper. If you find a security issue in the repo itself, open a private report through the repository owner instead of posting secrets in a public issue.
-
