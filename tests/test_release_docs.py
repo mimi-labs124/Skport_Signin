@@ -15,7 +15,6 @@ class ReleaseDocsTests(unittest.TestCase):
             Path(".github/ISSUE_TEMPLATE/bug_report.md"),
             Path(".github/ISSUE_TEMPLATE/feature_request.md"),
             Path(".github/pull_request_template.md"),
-            Path(".github/PULL_REQUEST_TEMPLATE.md"),
         ]
 
         for path in required_files:
