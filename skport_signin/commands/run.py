@@ -326,16 +326,7 @@ def page_looks_logged_out(page) -> bool:
     current_url = page.url.lower()
     if "login" in current_url:
         return True
-    if page_has_login_form(page):
-        return True
-
-    body_text = ""
-    try:
-        body_text = page.locator("body").inner_text(timeout=2000).lower()
-    except Exception:
-        body_text = ""
-    login_markers = ["login", "log in", "sign in", "\u767b\u5165", "\u767b\u5f55"]
-    return any(marker in body_text for marker in login_markers)
+    return page_has_login_form(page)
 
 
 def page_has_login_form(page) -> bool:
@@ -408,4 +399,3 @@ def legacy_main(argv: list[str] | None = None) -> int:
 
 
 main = legacy_main
-

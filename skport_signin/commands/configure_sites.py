@@ -7,6 +7,7 @@ from pathlib import Path
 
 from skport_signin.default_settings import build_default_settings, known_site_keys
 from skport_signin.errors import ConfigError
+from skport_signin.file_io import write_text_atomic
 from skport_signin.runtime import RuntimeContext, build_runtime_context
 
 
@@ -69,16 +70,23 @@ def configure_sites(
     data["sites"] = defaults["sites"]
 
     config_path.parent.mkdir(parents=True, exist_ok=True)
-    config_path.write_text(json.dumps(data, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    write_text_atomic(
+        config_path,
+        json.dumps(data, ensure_ascii=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def _load_existing_config(config_path: Path) -> dict:
     if not config_path.exists():
         return {}
 
-    data = json.loads(config_path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ConfigError(f"Could not parse config file at {config_path}: {exc.msg}.") from exc
     if not isinstance(data, dict):
-        raise ValueError(f"Configuration file at {config_path} must contain a JSON object.")
+        raise ConfigError(f"Configuration file at {config_path} must contain a JSON object.")
     return {
         key: value
         for key, value in data.items()
@@ -204,5 +212,3 @@ def legacy_main(argv: list[str] | None = None) -> int:
 
 
 main = legacy_main
-
-

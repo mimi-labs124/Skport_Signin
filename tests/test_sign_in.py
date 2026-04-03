@@ -435,6 +435,13 @@ class SignInTests(unittest.TestCase):
 
         self.assertFalse(sign_in.page_looks_logged_out(page))
 
+    def test_page_looks_logged_out_does_not_treat_sign_in_copy_as_login(self) -> None:
+        page = _FakePage([])
+        page.body_text = "Sign in every day to claim today's reward"
+        page.login_form_count = 0
+
+        self.assertFalse(sign_in.page_looks_logged_out(page))
+
     def test_page_looks_logged_out_for_login_url(self) -> None:
         page = _FakePage([])
         page.url = "https://example.com/login"
@@ -489,5 +496,4 @@ class SignInTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
 

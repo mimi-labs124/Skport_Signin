@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from skport_signin.app_paths import AppPaths
+from skport_signin.file_io import write_text_atomic
 
 ENDFIELD_KEY = "endfield"
 ARKNIGHTS_KEY = "arknights"
@@ -75,7 +76,8 @@ def write_default_settings(
         return target_path
 
     target_path.parent.mkdir(parents=True, exist_ok=True)
-    target_path.write_text(
+    write_text_atomic(
+        target_path,
         json.dumps(
             build_default_settings(
                 paths,
@@ -84,8 +86,7 @@ def write_default_settings(
             ),
             ensure_ascii=True,
             indent=2,
-        )
-        + "\n",
+        ) + "\n",
         encoding="utf-8",
     )
     return target_path
@@ -154,5 +155,4 @@ def default_profile_dir(
     if paths.mode == "packaged":
         return f"../browser-profile/{site_key}"
     return f"../state/{site_key}-browser-profile"
-
 

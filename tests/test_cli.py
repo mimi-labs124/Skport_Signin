@@ -72,3 +72,24 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 10)
         self.assertIn("Runtime error: click failed", stderr.getvalue())
+
+    def test_configure_sites_invalid_json_reports_configuration_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "settings.json"
+            config_path.write_text("{not-json}", encoding="utf-8")
+            stderr = io.StringIO()
+
+            exit_code = cli.main(
+                [
+                    "--config",
+                    str(config_path),
+                    "configure-sites",
+                    "--enable-site",
+                    "endfield",
+                ],
+                stderr=stderr,
+            )
+
+        self.assertEqual(exit_code, 30)
+        self.assertIn("Configuration error:", stderr.getvalue())
+        self.assertIn("Could not parse config file", stderr.getvalue())

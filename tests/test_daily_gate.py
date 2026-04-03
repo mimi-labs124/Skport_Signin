@@ -1,6 +1,7 @@
 ﻿import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from skport_signin.daily_gate import RunGateState, mark_attempt, should_run_today
 from skport_signin.errors import StateFileError
@@ -104,6 +105,23 @@ class DailyGateTests(unittest.TestCase):
 
         self.assertNotIn("attempts_today", data)
 
+    def test_mark_attempt_uses_atomic_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state_path = Path(temp_dir) / "state.json"
+
+            with patch("skport_signin.daily_gate.write_text_atomic") as write_atomic:
+                mark_attempt(
+                    state_path,
+                    RunGateState(
+                        last_attempt_date="2026-03-22",
+                        last_status="SUCCESS",
+                        updated_at="2026-03-22T10:00:00+08:00",
+                    ),
+                )
+
+        write_atomic.assert_called_once()
+        self.assertEqual(write_atomic.call_args.args[0], state_path)
+
     def test_load_state_raises_state_file_error_for_nondict_json(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             state_path = Path(temp_dir) / "state.json"
@@ -115,5 +133,3 @@ class DailyGateTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-

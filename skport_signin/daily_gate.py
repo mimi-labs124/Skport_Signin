@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from skport_signin.errors import StateFileError
+from skport_signin.file_io import write_text_atomic
 
 
 @dataclass
@@ -51,9 +52,9 @@ def mark_attempt(state_path: Path, state: RunGateState) -> None:
         "last_status": state.last_status,
         "updated_at": state.updated_at,
     }
-    state_path.write_text(
+    write_text_atomic(
+        state_path,
         json.dumps(payload, ensure_ascii=True, indent=2) + "\n",
         encoding="utf-8",
     )
-
 

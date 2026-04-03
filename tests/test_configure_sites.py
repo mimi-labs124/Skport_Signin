@@ -2,6 +2,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from skport_signin.commands import configure_sites
 
@@ -77,8 +78,21 @@ class ConfigureSitesTests(unittest.TestCase):
             "../state/arknights-browser-profile",
         )
 
+    def test_configure_sites_uses_atomic_write_for_settings_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "settings.json"
+            config_path.write_text("{}", encoding="utf-8")
+
+            with patch("skport_signin.commands.configure_sites.write_text_atomic") as write_atomic:
+                configure_sites.configure_sites(
+                    config_path,
+                    enabled_sites={"endfield"},
+                    share_profile_with_arknights=False,
+                )
+
+        write_atomic.assert_called_once()
+        self.assertEqual(write_atomic.call_args.args[0], config_path)
+
 
 if __name__ == "__main__":
     unittest.main()
-
-
