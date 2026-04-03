@@ -7,6 +7,15 @@ The format is based on Keep a Changelog and uses a simple `major.minor.patch` ve
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-03
+
+### Fixed
+
+- Removed UTF-8 BOM from `pyproject.toml` and Windows batch wrappers so CI and `cmd.exe` no longer fail on parse
+- Fixed guided installer argument assembly so enabled sites are not passed as both enabled and disabled
+- Hardened Windows installer wrappers to detect broken `.venv` interpreters and rebuild them automatically
+- Added Python launcher fallback discovery for Windows installs where `py` or `python` is not available on `PATH`
+
 ## [0.3.0] - 2026-04-03
 
 ### Added
@@ -41,4 +50,3 @@ The format is based on Keep a Changelog and uses a simple `major.minor.patch` ve
 - Updated batch wrappers to prefer `skport_signin.exe` and otherwise call `python -m skport_signin`
 - Updated task registration to schedule the unified CLI run path
 - Improved repo documentation for source mode, packaged mode, and sensitive data handling
-

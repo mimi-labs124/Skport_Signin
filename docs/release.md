@@ -32,8 +32,8 @@ Use consistent asset names so users can choose quickly:
 
 ## Suggested tag and release title
 
-- Tag: `v0.3.0`
-- Title: `v0.3.0 - Site selection and release refresh`
+- Tag: `v0.3.1`
+- Title: `v0.3.1 - Installer and packaging hotfixes`
 
 ## Versioning strategy
 
@@ -80,4 +80,3 @@ Always state:
 - browser/session data remains local and should never be published
 - the config now contains a full known-site list with per-site `enabled: true/false`
 - same-day completion state is remembered, but retry counting is no longer part of the active gate
-
