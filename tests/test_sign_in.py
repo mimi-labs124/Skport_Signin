@@ -118,6 +118,9 @@ class _FakePage:
     def reload(self, wait_until: str) -> None:
         return None
 
+    def close(self) -> None:
+        return None
+
     def locator(self, selector: str):
         if selector == "body":
             return _BodyLocator(self.body_text)
@@ -147,12 +150,19 @@ class _ClickPage:
 
 
 class _FakeContext:
-    def __init__(self, page: _FakePage) -> None:
+    def __init__(self, page: _FakePage | list[_FakePage]) -> None:
         self.pages = []
-        self._page = page
+        if isinstance(page, list):
+            self._pages = list(page)
+        else:
+            self._pages = [page]
 
     def new_page(self) -> _FakePage:
-        return self._page
+        if not self._pages:
+            raise AssertionError("No queued fake pages remain")
+        page = self._pages.pop(0)
+        self.pages.append(page)
+        return page
 
     def close(self) -> None:
         return None
@@ -161,8 +171,11 @@ class _FakeContext:
 class _FakeChromium:
     def __init__(self, context: _FakeContext) -> None:
         self._context = context
+        self.launch_count = 0
+        self.executable_path = "C:/fake/chromium.exe"
 
     def launch_persistent_context(self, *args, **kwargs) -> _FakeContext:
+        self.launch_count += 1
         return self._context
 
 
@@ -242,7 +255,7 @@ class SignInTests(unittest.TestCase):
                                 "signin_url": "https://game.skport.com/endfield/sign-in",
                                 "attendance_path": "/web/v1/game/endfield/attendance",
                                 "state_path": "./endfield-state.json",
-                                "browser_profile_dir": "./shared-profile",
+                                "browser_profile_dir": "./endfield-profile",
                             },
                             {
                                 "key": "arknights",
@@ -250,7 +263,7 @@ class SignInTests(unittest.TestCase):
                                 "signin_url": "https://game.skport.com/arknights/sign-in",
                                 "attendance_path": "/api/v1/game/attendance",
                                 "state_path": "./arknights-state.json",
-                                "browser_profile_dir": "./shared-profile",
+                                "browser_profile_dir": "./arknights-profile",
                             },
                         ]
                     }
@@ -288,7 +301,7 @@ class SignInTests(unittest.TestCase):
                                 "signin_url": "https://game.skport.com/endfield/sign-in",
                                 "attendance_path": "/web/v1/game/endfield/attendance",
                                 "state_path": "./endfield-state.json",
-                                "browser_profile_dir": "./shared-profile",
+                                "browser_profile_dir": "./endfield-profile",
                             },
                             {
                                 "key": "arknights",
@@ -296,7 +309,7 @@ class SignInTests(unittest.TestCase):
                                 "signin_url": "https://game.skport.com/arknights/sign-in",
                                 "attendance_path": "/api/v1/game/attendance",
                                 "state_path": "./arknights-state.json",
-                                "browser_profile_dir": "./shared-profile",
+                                "browser_profile_dir": "./arknights-profile",
                             },
                         ]
                     }
@@ -339,6 +352,137 @@ class SignInTests(unittest.TestCase):
             captured_attendance_paths,
             ["/web/v1/game/endfield/attendance", "/api/v1/game/attendance"],
         )
+
+    def test_main_shared_profile_uses_single_browser_context(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "settings.json"
+            profile_dir = root / "shared-profile"
+            profile_dir.mkdir()
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "sites": [
+                            {
+                                "key": "endfield",
+                                "name": "Endfield",
+                                "signin_url": "https://game.skport.com/endfield/sign-in",
+                                "attendance_path": "/web/v1/game/endfield/attendance",
+                                "state_path": "./endfield-state.json",
+                                "browser_profile_dir": "./shared-profile",
+                            },
+                            {
+                                "key": "arknights",
+                                "name": "Arknights",
+                                "signin_url": "https://game.skport.com/arknights/sign-in",
+                                "attendance_path": "/api/v1/game/attendance",
+                                "state_path": "./arknights-state.json",
+                                "browser_profile_dir": "./shared-profile",
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            endfield_page = _FakePage(
+                [
+                    _FakeResponse(
+                        200,
+                        {
+                            "data": {
+                                "calendar": [
+                                    {"available": True, "done": False},
+                                    {"available": False, "done": False},
+                                ]
+                            }
+                        },
+                        method="GET",
+                        url="https://game.skport.com/web/v1/game/endfield/attendance",
+                    ),
+                    _FakeResponse(
+                        200,
+                        {},
+                        ok=True,
+                        method="POST",
+                        url="https://game.skport.com/web/v1/game/endfield/attendance",
+                    ),
+                    _FakeResponse(
+                        200,
+                        {
+                            "data": {
+                                "calendar": [
+                                    {"available": False, "done": True},
+                                    {"available": False, "done": False},
+                                ]
+                            }
+                        },
+                        method="GET",
+                        url="https://game.skport.com/web/v1/game/endfield/attendance",
+                    ),
+                ]
+            )
+            arknights_page = _FakePage(
+                [
+                    _FakeResponse(
+                        200,
+                        {
+                            "data": {
+                                "calendar": [
+                                    {"available": True, "done": False},
+                                    {"available": False, "done": False},
+                                ]
+                            }
+                        },
+                        method="GET",
+                        url="https://game.skport.com/api/v1/game/attendance",
+                    ),
+                    _FakeResponse(
+                        200,
+                        {},
+                        ok=True,
+                        method="POST",
+                        url="https://game.skport.com/api/v1/game/attendance",
+                    ),
+                    _FakeResponse(
+                        200,
+                        {
+                            "data": {
+                                "calendar": [
+                                    {"available": False, "done": True},
+                                    {"available": False, "done": False},
+                                ]
+                            }
+                        },
+                        method="GET",
+                        url="https://game.skport.com/api/v1/game/attendance",
+                    ),
+                ]
+            )
+            fake_context = _FakeContext([endfield_page, arknights_page])
+            fake_playwright = _FakePlaywright(fake_context)
+
+            with patch.object(
+                sign_in,
+                "parse_args",
+                return_value=Namespace(config=str(config_path), dry_run=False, force=True),
+            ), patch.object(sign_in, "load_timezone", return_value=timezone.utc), patch.object(
+                sign_in,
+                "click_day_tile",
+            ), patch.object(
+                sign_in,
+                "notify_status",
+                return_value=None,
+            ), patch.object(
+                sign_in,
+                "ensure_browser_runtime_available",
+            ), patch(
+                "playwright.sync_api.sync_playwright",
+                return_value=_FakeSyncPlaywright(fake_playwright),
+            ):
+                exit_code = sign_in.main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(fake_playwright.chromium.launch_count, 1)
 
     def test_main_reports_state_file_errors_separately(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -496,4 +640,3 @@ class SignInTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

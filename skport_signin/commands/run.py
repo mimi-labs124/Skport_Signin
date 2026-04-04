@@ -3,6 +3,7 @@
 import argparse
 import sys
 from contextlib import nullcontext
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
@@ -33,6 +34,13 @@ from skport_signin.statuses import ALREADY_DONE, ERROR, SESSION_EXPIRED, SUCCESS
 from skport_signin.time_helpers import load_timezone
 
 DEFAULT_URL = "https://game.skport.com/endfield/sign-in?header=0&hg_media=skport&hg_link_campaign=tools"
+
+
+@dataclass(frozen=True)
+class PendingSiteRun:
+    site: SiteSettings
+    state_path: Path
+    profile_dir: Path
 
 
 def register_parser(subparsers) -> None:
@@ -70,6 +78,7 @@ def run_command(*, runtime: RuntimeContext, dry_run: bool, force: bool) -> int:
     log_dir.mkdir(parents=True, exist_ok=True)
     today = now.date().isoformat()
     exit_code = 0
+    pending_runs: list[PendingSiteRun] = []
 
     for site in settings.sites:
         if not site.enabled:
@@ -99,45 +108,127 @@ def run_command(*, runtime: RuntimeContext, dry_run: bool, force: bool) -> int:
             runtime.stdout.write(message + "\n")
             continue
 
-        outcome_message, status = run_browser_sign_in(
-            runtime=runtime,
-            profile_dir=profile_dir,
-            signin_url=site.signin_url,
-            attendance_path=site.attendance_path,
-            headless=settings.headless,
-            browser_channel=settings.browser_channel,
-            timeout_seconds=settings.timeout_seconds,
-        )
-        prefixed_message = prefix_site_message(site, outcome_message)
-        mark_attempt(
-            state_path,
-            RunGateState(
-                last_attempt_date=today,
-                last_status=status,
-                updated_at=now.isoformat(),
-            ),
-        )
-        write_log(log_dir, now, status, prefixed_message)
-        notification_warning = notify_status(
-            status,
-        f"SKPORT Sign-in session expired: {site.name}",
-            (
-                f"The saved sign-in session for {site.name} needs to be refreshed. "
-                f"Run capture_session.bat --site {site.key}."
-            ),
-        )
-        if notification_warning:
-            write_log(
-                log_dir,
-                now,
-                "NOTIFICATION_WARNING",
-                prefix_site_message(site, notification_warning),
+        pending_runs.append(
+            PendingSiteRun(
+                site=site,
+                state_path=state_path,
+                profile_dir=profile_dir,
             )
-        runtime.stdout.write(prefixed_message + "\n")
-        if status not in {SUCCESS, ALREADY_DONE}:
-            exit_code = 10
+        )
+
+    for group in group_pending_runs_by_profile(pending_runs):
+        if len(group) == 1:
+            pending_run = group[0]
+            results = [
+                (
+                    pending_run,
+                    *run_browser_sign_in(
+                        runtime=runtime,
+                        profile_dir=pending_run.profile_dir,
+                        signin_url=pending_run.site.signin_url,
+                        attendance_path=pending_run.site.attendance_path,
+                        headless=settings.headless,
+                        browser_channel=settings.browser_channel,
+                        timeout_seconds=settings.timeout_seconds,
+                    ),
+                )
+            ]
+        else:
+            results = run_browser_sign_in_group(
+                runtime=runtime,
+                settings=settings,
+                pending_runs=group,
+            )
+        for pending_run, outcome_message, status in results:
+            prefixed_message = prefix_site_message(pending_run.site, outcome_message)
+            mark_attempt(
+                pending_run.state_path,
+                RunGateState(
+                    last_attempt_date=today,
+                    last_status=status,
+                    updated_at=now.isoformat(),
+                ),
+            )
+            write_log(log_dir, now, status, prefixed_message)
+            notification_warning = notify_status(
+                status,
+                f"SKPORT Sign-in session expired: {pending_run.site.name}",
+                (
+                    f"The saved sign-in session for {pending_run.site.name} needs to be refreshed. "
+                    f"Run capture_session.bat --site {pending_run.site.key}."
+                ),
+            )
+            if notification_warning:
+                write_log(
+                    log_dir,
+                    now,
+                    "NOTIFICATION_WARNING",
+                    prefix_site_message(pending_run.site, notification_warning),
+                )
+            runtime.stdout.write(prefixed_message + "\n")
+            if status not in {SUCCESS, ALREADY_DONE}:
+                exit_code = 10
 
     return exit_code
+
+
+def group_pending_runs_by_profile(
+    pending_runs: list[PendingSiteRun],
+) -> list[list[PendingSiteRun]]:
+    grouped: dict[Path, list[PendingSiteRun]] = {}
+    for pending_run in pending_runs:
+        grouped.setdefault(pending_run.profile_dir, []).append(pending_run)
+    return list(grouped.values())
+
+
+def run_browser_sign_in_group(
+    *,
+    runtime: RuntimeContext,
+    settings,
+    pending_runs: list[PendingSiteRun],
+) -> list[tuple[PendingSiteRun, str, str]]:
+    if not pending_runs:
+        return []
+
+    profile_dir = pending_runs[0].profile_dir
+    if not profile_dir.exists():
+        raise FileNotFoundError(
+            f"Browser profile not found at {profile_dir}. Run capture_session.py first."
+        )
+
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError as exc:
+        raise ImportError(
+            "playwright is not installed. Run `python -m pip install playwright` "
+            "and then `playwright install chromium`."
+        ) from exc
+
+    browser_env = playwright_browser_env(runtime.app_paths)
+    with browser_env:
+        with sync_playwright() as playwright:
+            ensure_browser_runtime_available(playwright, runtime.app_paths)
+            context = playwright.chromium.launch_persistent_context(
+                str(profile_dir),
+                channel=settings.browser_channel or None,
+                headless=settings.headless,
+                viewport={"width": 1440, "height": 1200},
+            )
+            try:
+                return [
+                    (
+                        pending_run,
+                        *run_browser_sign_in_in_context(
+                            context=context,
+                            signin_url=pending_run.site.signin_url,
+                            attendance_path=pending_run.site.attendance_path,
+                            timeout_seconds=settings.timeout_seconds,
+                        ),
+                    )
+                    for pending_run in pending_runs
+                ]
+            finally:
+                context.close()
 
 
 def summarize_browser_run(settings, site: SiteSettings, profile_dir: Path) -> str:
@@ -167,15 +258,12 @@ def run_browser_sign_in(
         )
 
     try:
-        from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
         from playwright.sync_api import sync_playwright
     except ImportError as exc:
         raise ImportError(
             "playwright is not installed. Run `python -m pip install playwright` "
             "and then `playwright install chromium`."
         ) from exc
-
-    timeout_ms = timeout_seconds * 1000
 
     browser_env = playwright_browser_env(runtime.app_paths) if runtime else nullcontext()
     with browser_env:
@@ -189,101 +277,128 @@ def run_browser_sign_in(
                 viewport={"width": 1440, "height": 1200},
             )
             try:
-                page = context.pages[0] if context.pages else context.new_page()
-                page.set_default_timeout(timeout_ms)
-                with page.expect_response(
-                    lambda response: is_attendance_response(
-                        response.url,
-                        response.request.method,
-                        attendance_path,
-                    ),
-                    timeout=timeout_ms,
-                ) as attendance_info:
-                    page.goto(signin_url, wait_until="domcontentloaded")
-                attendance_response = attendance_info.value
-                if attendance_response.status in {401, 403}:
-                    return (
-                        "SESSION_EXPIRED: the attendance endpoint rejected the "
-                        "saved browser session.",
-                        SESSION_EXPIRED,
-                    )
-                try:
-                    attendance_payload = attendance_response.json()
-                except Exception:
-                    attendance_payload = {"code": -1, "data": {"calendar": []}}
-                page.wait_for_timeout(2000)
-
-                state = derive_attendance_state(attendance_payload)
-                if state.status == ALREADY_DONE:
-                    return (
-                        "ALREADY_DONE: page reports there is no available "
-                        "attendance reward to claim today.",
-                        ALREADY_DONE,
-                    )
-                if state.status == "UNKNOWN":
-                    if page_looks_logged_out(page):
-                        return (
-                            "SESSION_EXPIRED: the browser profile no longer looks logged in.",
-                            SESSION_EXPIRED,
-                        )
-                    return (
-                        "ERROR: the attendance payload did not include a "
-                        "calendar, so the run could not be verified.",
-                        ERROR,
-                    )
-
-                with page.expect_response(
-                    lambda response: response.request.method == "POST"
-                    and urlparse(response.url).path.rstrip("/") == attendance_path.rstrip("/"),
-                    timeout=timeout_ms,
-                ) as post_info:
-                    click_day_tile(page, state.day_number)
-                post_response = post_info.value
-                if post_response.status in {401, 403}:
-                    return (
-                        "SESSION_EXPIRED: the sign-in click was rejected because "
-                        "the saved session is no longer valid.",
-                        SESSION_EXPIRED,
-                    )
-                post_seen = post_response.ok
-                with page.expect_response(
-                    lambda response: is_attendance_response(
-                        response.url,
-                        response.request.method,
-                        attendance_path,
-                    ),
-                    timeout=timeout_ms,
-                ) as refreshed_attendance_info:
-                    page.reload(wait_until="domcontentloaded")
-                try:
-                    attendance_payload = refreshed_attendance_info.value.json()
-                except Exception:
-                    pass
-                try:
-                    page.wait_for_timeout(2000)
-                except PlaywrightTimeoutError:
-                    pass
-                refreshed_state = derive_attendance_state(attendance_payload)
-
-                status, message = final_signin_status(
-                    day_number=state.day_number or 0,
-                    refreshed_state=refreshed_state.status,
-                    post_seen=post_seen,
-                )
-                return message, status
-            except PlaywrightTimeoutError:
-                if page_looks_logged_out(page):
-                    return (
-                        "SESSION_EXPIRED: no attendance response arrived and the "
-                        "page appears to be logged out.",
-                        SESSION_EXPIRED,
-                    )
-                return (
-                    "ERROR: timed out while waiting for attendance responses from the page.",
-                    ERROR,
+                return run_browser_sign_in_in_context(
+                    context=context,
+                    signin_url=signin_url,
+                    attendance_path=attendance_path,
+                    timeout_seconds=timeout_seconds,
                 )
             finally:
                 context.close()
+
+
+def run_browser_sign_in_in_context(
+    *,
+    context,
+    signin_url: str,
+    attendance_path: str,
+    timeout_seconds: int,
+) -> tuple[str, str]:
+    from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+
+    timeout_ms = timeout_seconds * 1000
+    page = context.new_page()
+    page.set_default_timeout(timeout_ms)
+
+    try:
+        with page.expect_response(
+            lambda response: is_attendance_response(
+                response.url,
+                response.request.method,
+                attendance_path,
+            ),
+            timeout=timeout_ms,
+        ) as attendance_info:
+            page.goto(signin_url, wait_until="domcontentloaded")
+        attendance_response = attendance_info.value
+        if attendance_response.status in {401, 403}:
+            return (
+                "SESSION_EXPIRED: the attendance endpoint rejected the "
+                "saved browser session.",
+                SESSION_EXPIRED,
+            )
+        try:
+            attendance_payload = attendance_response.json()
+        except Exception:
+            attendance_payload = {"code": -1, "data": {"calendar": []}}
+        page.wait_for_timeout(2000)
+
+        state = derive_attendance_state(attendance_payload)
+        if state.status == ALREADY_DONE:
+            return (
+                "ALREADY_DONE: page reports there is no available "
+                "attendance reward to claim today.",
+                ALREADY_DONE,
+            )
+        if state.status == "UNKNOWN":
+            if page_looks_logged_out(page):
+                return (
+                    "SESSION_EXPIRED: the browser profile no longer looks logged in.",
+                    SESSION_EXPIRED,
+                )
+            return (
+                "ERROR: the attendance payload did not include a "
+                "calendar, so the run could not be verified.",
+                ERROR,
+            )
+
+        with page.expect_response(
+            lambda response: response.request.method == "POST"
+            and urlparse(response.url).path.rstrip("/") == attendance_path.rstrip("/"),
+            timeout=timeout_ms,
+        ) as post_info:
+            click_day_tile(page, state.day_number)
+        post_response = post_info.value
+        if post_response.status in {401, 403}:
+            return (
+                "SESSION_EXPIRED: the sign-in click was rejected because "
+                "the saved session is no longer valid.",
+                SESSION_EXPIRED,
+            )
+        post_seen = post_response.ok
+        with page.expect_response(
+            lambda response: is_attendance_response(
+                response.url,
+                response.request.method,
+                attendance_path,
+            ),
+            timeout=timeout_ms,
+        ) as refreshed_attendance_info:
+            page.reload(wait_until="domcontentloaded")
+        try:
+            attendance_payload = refreshed_attendance_info.value.json()
+        except Exception:
+            pass
+        try:
+            page.wait_for_timeout(2000)
+        except PlaywrightTimeoutError:
+            pass
+        refreshed_state = derive_attendance_state(attendance_payload)
+
+        status, message = final_signin_status(
+            day_number=state.day_number or 0,
+            refreshed_state=refreshed_state.status,
+            post_seen=post_seen,
+        )
+        return message, status
+    except PlaywrightTimeoutError:
+        if page_looks_logged_out(page):
+            return (
+                "SESSION_EXPIRED: no attendance response arrived and the "
+                "page appears to be logged out.",
+                SESSION_EXPIRED,
+            )
+        return (
+            "ERROR: timed out while waiting for attendance responses from the page.",
+            ERROR,
+        )
+    finally:
+        close_page = getattr(page, "close", None)
+        if callable(close_page):
+            try:
+                close_page()
+            except Exception:
+                pass
 
 
 def click_day_tile(page, day_number: int | None) -> None:
