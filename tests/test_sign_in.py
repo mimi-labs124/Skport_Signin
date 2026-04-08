@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from skport_signin.commands import run as sign_in
 from skport_signin.errors import InteractionError, StateFileError
+from skport_signin.runtime import build_runtime_context
 from skport_signin.statuses import SUCCESS
 
 
@@ -683,6 +684,63 @@ class SignInTests(unittest.TestCase):
             output,
         )
         self.assertIn("[Arknights] SUCCESS: mocked.", output)
+
+    def test_run_command_keeps_running_when_console_streams_are_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "settings.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "sites": [
+                            {
+                                "key": "endfield",
+                                "name": "Endfield",
+                                "signin_url": "https://game.skport.com/endfield/sign-in",
+                                "attendance_path": "/web/v1/game/endfield/attendance",
+                                "state_path": "./endfield-state.json",
+                                "browser_profile_dir": "./endfield-profile",
+                            },
+                            {
+                                "key": "arknights",
+                                "name": "Arknights",
+                                "signin_url": "https://game.skport.com/arknights/sign-in",
+                                "attendance_path": "/api/v1/game/attendance",
+                                "state_path": "./arknights-state.json",
+                                "browser_profile_dir": "./arknights-profile",
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with patch("skport_signin.runtime.sys.stdout", None), patch(
+                "skport_signin.runtime.sys.stderr",
+                None,
+            ):
+                runtime = build_runtime_context(config_override=str(config_path))
+
+            with patch.object(sign_in, "load_timezone", return_value=timezone.utc), patch.object(
+                sign_in,
+                "run_browser_sign_in",
+                return_value=("SUCCESS: mocked.", SUCCESS),
+            ), patch.object(
+                sign_in,
+                "notify_status",
+                return_value=None,
+            ):
+                exit_code = sign_in.run_command(runtime=runtime, dry_run=False, force=True)
+
+            endfield_state = json.loads(
+                (root / "endfield-state.json").read_text(encoding="utf-8")
+            )
+            arknights_state = json.loads(
+                (root / "arknights-state.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(endfield_state["last_status"], SUCCESS)
+            self.assertEqual(arknights_state["last_status"], SUCCESS)
 
     def test_page_looks_logged_out_does_not_treat_account_text_as_login(self) -> None:
         page = _FakePage([])

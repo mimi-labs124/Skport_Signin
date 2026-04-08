@@ -7,6 +7,14 @@ The format is based on Keep a Changelog and uses a simple `major.minor.patch` ve
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-04-09
+
+### Fixed
+
+- Prevented hidden `pythonw.exe` scheduled runs from aborting when no console `stdout` or `stderr` stream is attached
+- Updated the Windows logon task launcher to prefer `.venv\Scripts\python.exe` before `.venv\Scripts\pythonw.exe`, reducing silent background-run failures in source mode
+- Added regression coverage for missing-console scheduled runs and for the scheduled task launcher order
+
 ## [0.4.0] - 2026-04-03
 
 ### Added

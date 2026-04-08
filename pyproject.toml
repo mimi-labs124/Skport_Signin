@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "skport-signin"
-version = "0.4.0"
+version = "0.4.1"
 description = "Windows-first Skport_Signin helper for Endfield and Arknights."
 readme = "README.md"
 requires-python = ">=3.11"

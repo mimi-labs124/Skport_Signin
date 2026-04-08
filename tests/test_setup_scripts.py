@@ -41,6 +41,10 @@ class SetupScriptTests(unittest.TestCase):
         self.assertNotIn("Start-Sleep -Seconds", script)
         self.assertIn("skport_signin.exe", script)
         self.assertIn("-m skport_signin run", script)
+        self.assertLess(
+            script.index(".\\.venv\\Scripts\\python.exe"),
+            script.index(".\\.venv\\Scripts\\pythonw.exe"),
+        )
 
     def test_install_flow_delegates_to_setup_command(self) -> None:
         script = Path("install_skport_signin.bat").read_text(encoding="utf-8")

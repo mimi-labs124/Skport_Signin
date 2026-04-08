@@ -23,12 +23,12 @@ if (Test-Path '.\skport_signin.exe') {
     & '.\skport_signin.exe' run
     exit `$LASTEXITCODE
 }
-if (Test-Path '.\.venv\Scripts\pythonw.exe') {
-    & '.\.venv\Scripts\pythonw.exe' -m skport_signin run
-    exit `$LASTEXITCODE
-}
 if (Test-Path '.\.venv\Scripts\python.exe') {
     & '.\.venv\Scripts\python.exe' -m skport_signin run
+    exit `$LASTEXITCODE
+}
+if (Test-Path '.\.venv\Scripts\pythonw.exe') {
+    & '.\.venv\Scripts\pythonw.exe' -m skport_signin run
     exit `$LASTEXITCODE
 }
 if (Get-Command py -ErrorAction SilentlyContinue) {
