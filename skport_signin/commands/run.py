@@ -333,6 +333,7 @@ def run_browser_sign_in_in_context(
     attendance_path: str,
     timeout_seconds: int,
 ) -> tuple[str, str]:
+    from playwright.sync_api import Error as PlaywrightError
     from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
     timeout_ms = timeout_seconds * 1000
@@ -358,7 +359,7 @@ def run_browser_sign_in_in_context(
             )
         try:
             attendance_payload = attendance_response.json()
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, PlaywrightError):
             attendance_payload = {"code": -1, "data": {"calendar": []}}
         page.wait_for_timeout(2000)
 
@@ -440,6 +441,7 @@ def refresh_attendance_payload_with_retries(
     attendance_path: str,
     timeout_ms: int,
 ):
+    from playwright.sync_api import Error as PlaywrightError
     from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
     attendance_payload = {"code": -1, "data": {"calendar": []}}
@@ -457,7 +459,7 @@ def refresh_attendance_payload_with_retries(
             page.reload(wait_until="domcontentloaded")
         try:
             attendance_payload = refreshed_attendance_info.value.json()
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, PlaywrightError):
             attendance_payload = {"code": -1, "data": {"calendar": []}}
         try:
             page.wait_for_timeout(2000)
