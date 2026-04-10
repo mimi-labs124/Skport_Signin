@@ -162,12 +162,13 @@ python -m skport_signin paths --json
 ### 4. 擷取 session
 
 ```powershell
-python -m skport_signin capture-session --site endfield
+python -m skport_signin capture-session
 ```
 
-如果 Arknights 也有啟用：
+不帶 `--site` 時，會依照 `settings.json` 內目前啟用的站點逐一擷取 session。若只想重抓單一站點：
 
 ```powershell
+python -m skport_signin capture-session --site endfield
 python -m skport_signin capture-session --site arknights
 ```
 

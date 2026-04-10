@@ -7,6 +7,10 @@ The format is based on Keep a Changelog and uses a simple `major.minor.patch` ve
 
 ## [Unreleased]
 
+### Fixed
+
+- Changed `capture-session` without `--site` to capture every currently enabled site, so `capture_session.bat` follows the selected site configuration instead of only refreshing Endfield
+
 ## [0.4.1] - 2026-04-09
 
 ### Fixed

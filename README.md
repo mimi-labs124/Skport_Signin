@@ -159,12 +159,13 @@ Base directory resolution order:
 ### 4. Capture sessions
 
 ```powershell
-python -m skport_signin capture-session --site endfield
+python -m skport_signin capture-session
 ```
 
-If Arknights is enabled too:
+Without `--site`, this captures sessions for every enabled site in `settings.json`. To refresh only one site:
 
 ```powershell
+python -m skport_signin capture-session --site endfield
 python -m skport_signin capture-session --site arknights
 ```
 

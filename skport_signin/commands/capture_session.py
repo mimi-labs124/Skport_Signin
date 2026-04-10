@@ -4,7 +4,6 @@ import argparse
 import sys
 
 from skport_signin.config import (
-    DEFAULT_ENDFIELD_KEY,
     find_site,
     load_runtime_settings,
     resolve_path,
@@ -26,14 +25,28 @@ def register_parser(subparsers) -> None:
     )
     parser.add_argument(
         "--site",
-        default=DEFAULT_ENDFIELD_KEY,
-        help="Site key or name to capture a session for.",
+        help="Site key or name to capture a session for. If omitted, captures all enabled sites.",
     )
     parser.set_defaults(handler=handle_command)
 
 
 def handle_command(args, runtime: RuntimeContext) -> int:
-    return run_capture_session(runtime=runtime, site_name=args.site)
+    return run_capture_sessions(runtime=runtime, site_name=args.site)
+
+
+def run_capture_sessions(*, runtime: RuntimeContext, site_name: str | None) -> int:
+    config_path = runtime.app_paths.config_file
+    settings = load_runtime_settings(config_path, DEFAULT_URL)
+    if site_name:
+        selected_sites = [find_site(settings, site_name)]
+    else:
+        selected_sites = [site for site in settings.sites if site.enabled]
+
+    for site in selected_sites:
+        exit_code = run_capture_session(runtime=runtime, site_name=site.key)
+        if exit_code != 0:
+            return exit_code
+    return 0
 
 
 def run_capture_session(*, runtime: RuntimeContext, site_name: str) -> int:
@@ -85,8 +98,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--site",
-        default=DEFAULT_ENDFIELD_KEY,
-        help="Site key or name to capture a session for.",
+        help="Site key or name to capture a session for. If omitted, captures all enabled sites.",
     )
     return parser.parse_args(argv)
 
@@ -95,7 +107,7 @@ def legacy_main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     runtime = build_runtime_context(config_override=args.config)
     try:
-        return run_capture_session(runtime=runtime, site_name=args.site)
+        return run_capture_sessions(runtime=runtime, site_name=args.site)
     except FileNotFoundError as exc:
         print(f"Missing file: {exc}", file=sys.stderr)
         return 30
@@ -105,4 +117,3 @@ def legacy_main(argv: list[str] | None = None) -> int:
 
 
 main = legacy_main
-

@@ -7,6 +7,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
+from skport_signin import cli
 from skport_signin.commands import capture_session
 
 
@@ -119,8 +120,94 @@ class CaptureSessionTests(unittest.TestCase):
         self.assertEqual(exit_code, 30)
         self.assertIn("Unknown site", stderr.getvalue())
 
+    def test_cli_without_site_captures_each_enabled_site(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "settings.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "sites": [
+                            {
+                                "key": "endfield",
+                                "name": "Endfield",
+                                "enabled": False,
+                                "signin_url": "https://game.skport.com/endfield/sign-in",
+                            },
+                            {
+                                "key": "arknights",
+                                "name": "Arknights",
+                                "enabled": True,
+                                "signin_url": "https://game.skport.com/arknights/sign-in",
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            captured_sites = []
+
+            def fake_run_capture_session(*, runtime, site_name):
+                captured_sites.append(site_name)
+                return 0
+
+            with patch.object(
+                capture_session,
+                "run_capture_session",
+                side_effect=fake_run_capture_session,
+            ):
+                exit_code = cli.main(["--config", str(config_path), "capture-session"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(captured_sites, ["arknights"])
+
+    def test_cli_with_site_captures_only_explicit_site(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "settings.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "sites": [
+                            {
+                                "key": "endfield",
+                                "name": "Endfield",
+                                "enabled": True,
+                                "signin_url": "https://game.skport.com/endfield/sign-in",
+                            },
+                            {
+                                "key": "arknights",
+                                "name": "Arknights",
+                                "enabled": True,
+                                "signin_url": "https://game.skport.com/arknights/sign-in",
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            captured_sites = []
+
+            def fake_run_capture_session(*, runtime, site_name):
+                captured_sites.append(site_name)
+                return 0
+
+            with patch.object(
+                capture_session,
+                "run_capture_session",
+                side_effect=fake_run_capture_session,
+            ):
+                exit_code = cli.main(
+                    [
+                        "--config",
+                        str(config_path),
+                        "capture-session",
+                        "--site",
+                        "endfield",
+                    ]
+                )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(captured_sites, ["endfield"])
+
 
 if __name__ == "__main__":
     unittest.main()
-
-
