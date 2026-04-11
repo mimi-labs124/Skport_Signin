@@ -29,7 +29,7 @@ from skport_signin.playwright_runtime import (
 )
 from skport_signin.result_helpers import final_signin_status
 from skport_signin.runtime import RuntimeContext, build_runtime_context
-from skport_signin.statuses import ALREADY_DONE, ERROR, SESSION_EXPIRED, SUCCESS
+from skport_signin.statuses import ALREADY_DONE, ERROR, SESSION_EXPIRED, SUCCESS, UNKNOWN
 from skport_signin.time_helpers import load_timezone
 
 DEFAULT_URL = "https://game.skport.com/endfield/sign-in?header=0&hg_media=skport&hg_link_campaign=tools"
@@ -155,18 +155,19 @@ def run_command(*, runtime: RuntimeContext, dry_run: bool, force: bool) -> int:
                 pending_runs=group,
             )
         for pending_run, outcome_message, status in results:
+            result_now = datetime.now(timezone)
             prefixed_message = prefix_site_message(pending_run.site, outcome_message)
             mark_attempt(
                 pending_run.state_path,
                 RunGateState(
                     last_attempt_date=today,
                     last_status=status,
-                    updated_at=now.isoformat(),
+                    updated_at=result_now.isoformat(),
                 ),
             )
             write_log(
                 log_dir,
-                now,
+                result_now,
                 status,
                 prefixed_message,
                 details=site_log_details(
@@ -182,7 +183,7 @@ def run_command(*, runtime: RuntimeContext, dry_run: bool, force: bool) -> int:
             if notification_warning:
                 write_log(
                     log_dir,
-                    now,
+                    result_now,
                     "NOTIFICATION_WARNING",
                     prefix_site_message(pending_run.site, notification_warning),
                     details=site_log_details(
@@ -430,7 +431,7 @@ def run_browser_sign_in_in_context(
                 "attendance reward to claim today.",
                 ALREADY_DONE,
             )
-        if state.status == "UNKNOWN":
+        if state.status == UNKNOWN:
             if page_looks_logged_out(page):
                 return (
                     "SESSION_EXPIRED: the browser profile no longer looks logged in. "
@@ -464,7 +465,7 @@ def run_browser_sign_in_in_context(
             timeout_ms=timeout_ms,
         )
 
-        if refreshed_state.status == "UNKNOWN" and page_looks_logged_out(page):
+        if refreshed_state.status == UNKNOWN and page_looks_logged_out(page):
             return (
                 "SESSION_EXPIRED: the sign-in page no longer looks logged in after the "
                 f"sign-in click. final_url={safe_page_url(page)}",
