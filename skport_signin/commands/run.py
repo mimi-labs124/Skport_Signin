@@ -35,6 +35,7 @@ from skport_signin.time_helpers import load_timezone
 DEFAULT_URL = "https://game.skport.com/endfield/sign-in?header=0&hg_media=skport&hg_link_campaign=tools"
 REFRESH_VERIFICATION_ATTEMPTS = 3
 REFRESH_VERIFICATION_DELAY_MS = 1500
+SITE_ERROR_RETRY_ATTEMPTS = 2
 
 
 @dataclass(frozen=True)
@@ -262,10 +263,10 @@ def run_single_pending_site(
     settings,
     pending_run: PendingSiteRun,
 ) -> tuple[PendingSiteRun, str, str]:
-    try:
-        return (
-            pending_run,
-            *run_browser_sign_in(
+    return (
+        pending_run,
+        *run_site_with_retry(
+            lambda: run_browser_sign_in(
                 runtime=runtime,
                 profile_dir=pending_run.profile_dir,
                 signin_url=pending_run.site.signin_url,
@@ -273,10 +274,9 @@ def run_single_pending_site(
                 headless=settings.headless,
                 browser_channel=settings.browser_channel,
                 timeout_seconds=settings.timeout_seconds,
-            ),
-        )
-    except Exception as exc:
-        return pending_run, format_site_runtime_exception(exc), ERROR
+            )
+        ),
+    )
 
 
 def run_pending_site_in_context(
@@ -285,18 +285,46 @@ def run_pending_site_in_context(
     context,
     timeout_seconds: int,
 ) -> tuple[PendingSiteRun, str, str]:
-    try:
-        return (
-            pending_run,
-            *run_browser_sign_in_in_context(
+    return (
+        pending_run,
+        *run_site_with_retry(
+            lambda: run_browser_sign_in_in_context(
                 context=context,
                 signin_url=pending_run.site.signin_url,
                 attendance_path=pending_run.site.attendance_path,
                 timeout_seconds=timeout_seconds,
-            ),
-        )
-    except Exception as exc:
-        return pending_run, format_site_runtime_exception(exc), ERROR
+            )
+        ),
+    )
+
+
+def run_site_with_retry(run_once) -> tuple[str, str]:
+    first_error: str | None = None
+
+    for attempt in range(SITE_ERROR_RETRY_ATTEMPTS):
+        try:
+            message, status = run_once()
+        except Exception as exc:
+            message, status = format_site_runtime_exception(exc), ERROR
+
+        if status != ERROR or attempt + 1 >= SITE_ERROR_RETRY_ATTEMPTS:
+            if first_error is not None:
+                message = format_retry_outcome(
+                    message=message,
+                    status=status,
+                    first_error=first_error,
+                )
+            return message, status
+
+        first_error = message
+
+    return "ERROR: site run exhausted retries unexpectedly.", ERROR
+
+
+def format_retry_outcome(*, message: str, status: str, first_error: str) -> str:
+    if status == ERROR:
+        return f"{message} Retried once after: {first_error}"
+    return f"{message} Recovered after retry. First attempt: {first_error}"
 
 
 def format_site_runtime_exception(exc: Exception) -> str:

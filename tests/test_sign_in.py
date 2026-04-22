@@ -11,7 +11,7 @@ from unittest.mock import patch
 from skport_signin.commands import run as sign_in
 from skport_signin.errors import InteractionError, StateFileError
 from skport_signin.runtime import build_runtime_context
-from skport_signin.statuses import ERROR, SUCCESS
+from skport_signin.statuses import ERROR, SESSION_EXPIRED, SUCCESS
 
 
 class _FakeResponse:
@@ -265,6 +265,76 @@ class SignInTests(unittest.TestCase):
 
         self.assertEqual(status, SUCCESS)
         self.assertIn("Day 1", message)
+
+    def test_run_pending_site_in_context_retries_transient_error_once(self) -> None:
+        pending_run = sign_in.PendingSiteRun(
+            site=sign_in.SiteSettings(
+                key="endfield",
+                name="Endfield",
+                signin_url="https://game.skport.com/endfield/sign-in",
+                attendance_path="/web/v1/game/endfield/attendance",
+                state_path=Path("state/endfield-last_run.json"),
+                browser_profile_dir=Path("state/browser-profile"),
+                enabled=True,
+            ),
+            profile_dir=Path("state/browser-profile"),
+            state_path=Path("state/endfield-last_run.json"),
+        )
+
+        with patch.object(
+            sign_in,
+            "run_browser_sign_in_in_context",
+            side_effect=[
+                (
+                    "ERROR: timed out while waiting for attendance responses from the page. "
+                    "final_url=https://example.com",
+                    ERROR,
+                ),
+                ("SUCCESS: clicked Day 20 and attendance state refreshed.", SUCCESS),
+            ],
+        ) as run_once:
+            result = sign_in.run_pending_site_in_context(
+                pending_run=pending_run,
+                context=object(),
+                timeout_seconds=20,
+            )
+
+        self.assertEqual(result[2], SUCCESS)
+        self.assertIn("Recovered after retry.", result[1])
+        self.assertEqual(run_once.call_count, 2)
+
+    def test_run_pending_site_in_context_does_not_retry_session_expired(self) -> None:
+        pending_run = sign_in.PendingSiteRun(
+            site=sign_in.SiteSettings(
+                key="endfield",
+                name="Endfield",
+                signin_url="https://game.skport.com/endfield/sign-in",
+                attendance_path="/web/v1/game/endfield/attendance",
+                state_path=Path("state/endfield-last_run.json"),
+                browser_profile_dir=Path("state/browser-profile"),
+                enabled=True,
+            ),
+            profile_dir=Path("state/browser-profile"),
+            state_path=Path("state/endfield-last_run.json"),
+        )
+
+        with patch.object(
+            sign_in,
+            "run_browser_sign_in_in_context",
+            return_value=(
+                "SESSION_EXPIRED: the browser profile no longer looks logged in.",
+                SESSION_EXPIRED,
+            ),
+        ) as run_once:
+            result = sign_in.run_pending_site_in_context(
+                pending_run=pending_run,
+                context=object(),
+                timeout_seconds=20,
+            )
+
+        self.assertEqual(result[2], SESSION_EXPIRED)
+        self.assertNotIn("Recovered after retry.", result[1])
+        self.assertEqual(run_once.call_count, 1)
 
     def test_run_browser_sign_in_retries_refreshed_state_after_successful_post(self) -> None:
         attendance_payload = {
